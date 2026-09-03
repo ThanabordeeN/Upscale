@@ -12,18 +12,45 @@ export async function detectWebGPU(): Promise<WebGPUStatus> {
     isTesting: false,
   };
 
+  if (typeof window !== 'undefined' && !window.isSecureContext) {
+    status.errorMessage = 'WebGPU is disabled because this page is not in a Secure Context (HTTPS or http://localhost). Please access via https:// or http://localhost.';
+    return status;
+  }
+
   if (typeof navigator === 'undefined' || !navigator.gpu) {
-    status.errorMessage = 'WebGPU is not supported in this browser. Please use Chrome 113+, Edge 113+, or enable WebGPU flags.';
+    status.errorMessage = 'navigator.gpu is not available in this browser. On Linux, Chrome/Edge requires enabling the chrome://flags/#enable-unsafe-webgpu flag.';
     return status;
   }
 
   try {
-    const adapter = await navigator.gpu.requestAdapter({
-      powerPreference: 'high-performance',
-    });
+    // Attempt 1: High performance dedicated GPU
+    let adapter: GPUAdapter | null = null;
+    try {
+      adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    } catch {
+      // ignore and try fallback
+    }
+
+    // Attempt 2: Default adapter (integrated or default GPU)
+    if (!adapter) {
+      try {
+        adapter = await navigator.gpu.requestAdapter();
+      } catch {
+        // ignore and try fallback
+      }
+    }
+
+    // Attempt 3: Low-power adapter
+    if (!adapter) {
+      try {
+        adapter = await navigator.gpu.requestAdapter({ powerPreference: 'low-power' });
+      } catch {
+        // ignore
+      }
+    }
 
     if (!adapter) {
-      status.errorMessage = 'No compatible WebGPU hardware adapter found. Ensure your GPU drivers are updated and hardware acceleration is enabled.';
+      status.errorMessage = 'No compatible WebGPU adapter returned by requestAdapter(). Ensure GPU hardware acceleration is enabled in browser settings.';
       return status;
     }
 
