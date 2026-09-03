@@ -3,37 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-paper-950 text-paper-100 antialiased selection:bg-terracotta-500 selection:text-paper-50;
+    @apply bg-paper-950 text-paper-100 antialiased selection:bg-terracotta-500 selection:text-white;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* Optimal Thai typography line-height without vowel clipping */
   html[lang="th"] {
-    line-height: 1.68;
+    line-height: 1.62;
     word-break: break-word;
   }
 
   h1, h2, h3, .font-serif {
     font-feature-settings: "liga" 1, "kern" 1;
+    letter-spacing: -0.02em;
   }
 }
 
-/* Editorial subtle warm scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #12110f;
+  background: #0b0b0c;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2b2722;
-  border-radius: 4px;
+  background: #2c2c2e;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3e3831;
+  background: #3a3a3c;
 }

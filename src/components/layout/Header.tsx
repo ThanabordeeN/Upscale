@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, ShieldCheck, Cpu, HelpCircle, BookOpen } from 'lucide-react';
+import { Sparkles, ShieldCheck } from 'lucide-react';
 import { WebGPUStatus } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -9,103 +9,59 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ webgpuStatus, onOpenPrivacyModal }) => {
-  const { lang, setLang, t } = useLanguage();
+  const { lang, setLang } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-paper-800/80 bg-paper-950/95 backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-3 py-2.5 sm:px-6 sm:py-3.5">
-        <div className="flex items-center justify-between gap-2.5">
-          {/* Compact mobile-first brand */}
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-paper-800 bg-paper-900 text-terracotta-400 shadow-sm sm:h-10 sm:w-10">
-              <Sparkles className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </div>
-
-            <div className="min-w-0">
-              <div className="font-serif font-semibold tracking-tight text-paper-50">
-                <span className="text-sm sm:hidden">AI Upscaler</span>
-                <span className="hidden text-lg sm:inline">{t.brandTitle}</span>
-              </div>
-              <p className="hidden text-xs text-paper-400 sm:block">
-                {t.tagline} • Real-ESRGAN & Real-HAT-GAN
-              </p>
-            </div>
-
-            <span className="hidden whitespace-nowrap rounded-full border border-paper-800 bg-paper-850 px-2.5 py-1 text-[11px] font-medium text-terracotta-400 md:inline-flex">
-              {t.zeroUploadBadge}
-            </span>
+    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-paper-950/80 backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-white text-black shadow-sm">
+            <Sparkles className="h-4 w-4" strokeWidth={2} />
           </div>
+          <span className="truncate text-[15px] font-semibold tracking-tight text-paper-50">
+            Upscaler
+          </span>
+        </div>
 
-          {/* Desktop navigation */}
-          <nav className="hidden items-center space-x-5 text-xs font-medium text-paper-300 lg:flex">
-            <a href="#how-it-works" className="flex items-center gap-1.5 transition-colors hover:text-terracotta-400">
-              <Cpu className="h-3.5 w-3.5 text-paper-400" />
-              {t.navHowItWorks}
-            </a>
-            <a href="#guide" className="flex items-center gap-1.5 transition-colors hover:text-terracotta-400">
-              <BookOpen className="h-3.5 w-3.5 text-paper-400" />
-              {t.navModels}
-            </a>
-            <a href="#faq" className="flex items-center gap-1.5 transition-colors hover:text-terracotta-400">
-              <HelpCircle className="h-3.5 w-3.5 text-paper-400" />
-              {t.navFaq}
-            </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="inline-flex items-center rounded-full bg-paper-900 p-0.5 text-[11px] ring-1 ring-inset ring-white/10">
             <button
               type="button"
-              onClick={onOpenPrivacyModal}
-              className="flex items-center gap-1.5 text-sage-400 transition-colors hover:text-terracotta-400"
-            >
-              <ShieldCheck className="h-3.5 w-3.5 text-sage-400" />
-              {t.navPrivacy}
-            </button>
-          </nav>
-
-          {/* Mobile-safe controls: fixed-size, single-line, no wrapping */}
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
-            <div className="inline-flex items-center rounded-full border border-paper-800 bg-paper-900 p-0.5 text-[11px] sm:text-xs">
-              <button
-                type="button"
-                onClick={() => setLang('th')}
-                className={`whitespace-nowrap rounded-full px-2 py-1 font-medium transition-all sm:px-2.5 ${
-                  lang === 'th'
-                    ? 'bg-paper-800 text-paper-50 shadow-sm'
-                    : 'text-paper-400 hover:text-paper-200'
-                }`}
-              >
-                TH
-              </button>
-              <button
-                type="button"
-                onClick={() => setLang('en')}
-                className={`whitespace-nowrap rounded-full px-2 py-1 font-medium transition-all sm:px-2.5 ${
-                  lang === 'en'
-                    ? 'bg-paper-800 text-paper-50 shadow-sm'
-                    : 'text-paper-400 hover:text-paper-200'
-                }`}
-              >
-                EN
-              </button>
-            </div>
-
-            <div
-              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-1.5 text-[11px] font-medium sm:px-3 sm:text-xs ${
-                webgpuStatus.supported
-                  ? 'border-sage-500/30 bg-sage-600/10 text-sage-400'
-                  : 'border-paper-800 bg-paper-900 text-paper-300'
+              onClick={() => setLang('th')}
+              className={`rounded-full px-2.5 py-1 font-medium transition-colors ${
+                lang === 'th' ? 'bg-paper-50 text-paper-950' : 'text-paper-400 hover:text-paper-100'
               }`}
-              title={webgpuStatus.supported ? 'WebGPU hardware acceleration active' : 'ONNX Runtime WASM CPU mode'}
             >
-              <span
-                className={`h-2 w-2 shrink-0 rounded-full ${
-                  webgpuStatus.supported ? 'animate-pulse bg-sage-400' : 'bg-terracotta-400'
-                }`}
-              />
-              <span className="sm:hidden">{webgpuStatus.supported ? 'GPU' : 'CPU'}</span>
-              <span className="hidden sm:inline">
-                {webgpuStatus.supported ? 'WebGPU Ready' : 'CPU (WASM)'}
-              </span>
-            </div>
+              TH
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang('en')}
+              className={`rounded-full px-2.5 py-1 font-medium transition-colors ${
+                lang === 'en' ? 'bg-paper-50 text-paper-950' : 'text-paper-400 hover:text-paper-100'
+              }`}
+            >
+              EN
+            </button>
           </div>
+
+          <div
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-paper-900 px-2.5 text-[11px] font-medium text-paper-300 ring-1 ring-inset ring-white/10"
+            title={webgpuStatus.supported ? 'WebGPU active' : 'CPU (WASM) mode'}
+          >
+            <span className={`h-2 w-2 rounded-full ${webgpuStatus.supported ? 'bg-sage-500' : 'bg-paper-500'}`} />
+            <span>{webgpuStatus.supported ? 'GPU' : 'CPU'}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenPrivacyModal}
+            className="hidden h-8 w-8 items-center justify-center rounded-full text-paper-400 transition-colors hover:bg-paper-900 hover:text-paper-100 sm:flex"
+            aria-label="Privacy"
+            title="Privacy"
+          >
+            <ShieldCheck className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </header>
