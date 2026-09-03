@@ -49,7 +49,7 @@ export interface UpscaleProgress {
   tileSize: number;
   detail: string;
   oomFallbackTriggered?: boolean;
-  engineMode?: 'webgpu-onnx' | 'wasm-onnx' | 'simulated-filter';
+  engineMode?: 'webgpu-onnx' | 'wasm-onnx';
 }
 
 export interface ImageMetadata {

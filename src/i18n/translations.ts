@@ -13,7 +13,7 @@ export const translations = {
 
     // Hero
     heroTitlePart1: 'ยกระดับความคมชัดภาพถ่าย',
-    heroTitlePart2: 'ด้วยพลัง AI บนการ์ดจอของคุณ',
+    heroTitlePart2: 'ด้วยพลัง AI บนอุปกรณ์ของคุณ',
     heroSubtitle: 'ขยายภาพ 2× และ 4× แบบความละเอียดสูง (Super-Resolution) ประมวลผลภายในเบราว์เซอร์ของคุณโดยตรง ภาพไม่หลุดออกจากเครื่อง ฟรีตลอดชีพ ไม่มีเครดิต',
 
     // Dropzone
@@ -51,16 +51,15 @@ export const translations = {
     overlapHint: 'ผสานรอยต่อด้วยเทคนิค Raised-Cosine 2D เพื่อขจัดรอยตัดระหว่างบล็อก 100%',
 
     // Action
-    privacyPromise: 'ภาพของคุณจะไม่ถูกส่งไปยังเซิร์ฟเวอร์ใดๆ ประมวลผลบน GPU เครื่องนี้เท่านั้น',
+    privacyPromise: 'ภาพของคุณจะไม่ถูกส่งไปยังเซิร์ฟเวอร์ใดๆ และประมวลผลบนอุปกรณ์นี้เท่านั้น ทั้งโหมด WebGPU และ CPU Fallback',
     startUpscaleBtn: 'เริ่มขยายภาพ',
 
     // Progress
-    processingWebGPU: 'กำลังประมวลผลบน GPU ในเครื่อง...',
+    processingWebGPU: 'กำลังประมวลผล AI บนเครื่อง...',
     upscaleComplete: 'ขยายความละเอียดสำเร็จเรียบร้อย',
     processingHalted: 'การประมวลผลหยุดชะงัก',
     realWebGPUActive: '⚡ Real WebGPU AI (การ์ดจอ)',
     realWasmActive: '🧠 Real ONNX (WASM CPU)',
-    simulatedActive: '⚠️ Simulated Fallback',
 
     // Comparison & Download
     comparisonTitle: 'เปรียบเทียบผลลัพธ์',
@@ -77,7 +76,7 @@ export const translations = {
     webgpuActiveTitle: 'WebGPU Hardware Acceleration พร้อมใช้งาน',
     webgpuActiveDesc: 'ระบบตรวจพบการ์ดจอของคุณและจะใช้โครงข่ายประสาทเทียมรันแบบเต็มประสิทธิภาพ',
     webgpuInactiveTitle: 'WebGPU Hardware Acceleration ยังไม่เปิดใช้งาน',
-    webgpuInactiveDesc: 'ระบบจะสลับไปใช้ CPU Fallback แทน เพื่อประสิทธิภาพสูงสุด แนะนำเปิด WebGPU ใน Chrome 113+',
+    webgpuInactiveDesc: 'ระบบจะสลับไปใช้ ONNX Runtime WASM บน CPU โดยอัตโนมัติ และยังคงใช้โมเดล AI จริง แนะนำเปิด WebGPU ใน Chrome 113+ เพื่อความเร็วสูงสุด',
     recheckBtn: 'ตรวจเช็คใหม่',
     howToEnableBtn: 'วิธีเปิดใช้งาน',
 
@@ -102,7 +101,7 @@ export const translations = {
 
     // Hero
     heroTitlePart1: 'Refined Image Super-Resolution',
-    heroTitlePart2: 'Directly on Your Local GPU',
+    heroTitlePart2: 'Directly on Your Device',
     heroSubtitle: 'Upscale and restore your images 2× and 4× with neural networks directly inside your browser. Zero uploads, zero server fees, 100% private and unlimited.',
 
     // Dropzone
@@ -140,16 +139,15 @@ export const translations = {
     overlapHint: 'Overlapping margins blended with 2D raised-cosine windowing eliminate tile seams 100%.',
 
     // Action
-    privacyPromise: 'Your photograph is processed strictly on your GPU and will never be uploaded.',
+    privacyPromise: 'Your photograph is processed locally on this device and will never be uploaded, whether WebGPU or CPU fallback is used.',
     startUpscaleBtn: 'Upscale Image',
 
     // Progress
-    processingWebGPU: 'Processing on Local GPU...',
+    processingWebGPU: 'Processing AI Locally...',
     upscaleComplete: 'Upscaling Complete (Super-Resolution)',
     processingHalted: 'Processing Halted',
     realWebGPUActive: '⚡ Real WebGPU AI (GPU)',
     realWasmActive: '🧠 Real ONNX (WASM CPU)',
-    simulatedActive: '⚠️ Simulated Fallback',
 
     // Comparison & Download
     comparisonTitle: 'Before & After Inspection',
@@ -166,7 +164,7 @@ export const translations = {
     webgpuActiveTitle: 'WebGPU Hardware Acceleration Active',
     webgpuActiveDesc: 'Your GPU was detected and will accelerate real neural network inference.',
     webgpuInactiveTitle: 'WebGPU Hardware Acceleration Unavailable',
-    webgpuInactiveDesc: 'Client edge filtering and CPU fallback will be used. For maximum speed, use Chrome 113+ with WebGPU enabled.',
+    webgpuInactiveDesc: 'The app will automatically use ONNX Runtime WASM on your CPU and continue running the real AI model. Enable WebGPU in Chrome 113+ for maximum speed.',
     recheckBtn: 'Re-check',
     howToEnableBtn: 'How to Enable',
 
