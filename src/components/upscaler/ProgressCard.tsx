@@ -51,11 +51,6 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
                   {t.realWasmActive}
                 </span>
               )}
-              {progress.engineMode === 'simulated-filter' && (
-                <span className="rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-medium">
-                  {t.simulatedActive}
-                </span>
-              )}
             </div>
             <p className="text-xs text-paper-400 font-sans mt-0.5">{progress.detail}</p>
           </div>
@@ -80,14 +75,14 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
         />
       </div>
 
-      {/* OOM fallback notice */}
+      {/* Memory fallback notice */}
       {progress.oomFallbackTriggered && (
         <div className="flex items-center space-x-2 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-300">
           <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0" />
           <span>
             {lang === 'th'
-              ? `หน่วยความจำ GPU ถึงขีดจำกัด: ปรับลดขนาดบล็อกลงเหลือ ${progress.tileSize}px อัตโนมัติ เพื่อความเสถียร`
-              : `GPU memory buffer limit encountered: automatically resized tile down to ${progress.tileSize}px to prevent browser crashes.`}
+              ? `หน่วยความจำถึงขีดจำกัด: ปรับลดขนาดบล็อกลงเหลือ ${progress.tileSize}px อัตโนมัติ โดยยังใช้โมเดล ONNX จริง`
+              : `Inference memory limit encountered: automatically resized tiles to ${progress.tileSize}px while keeping real ONNX inference.`}
           </span>
         </div>
       )}
