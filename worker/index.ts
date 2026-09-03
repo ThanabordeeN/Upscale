@@ -68,15 +68,15 @@ export default {
     // API Config endpoint
     if (url.pathname === '/api/config') {
       const config = {
-        modelCdnUrl: env.MODEL_CDN_URL || 'https://models.example.com',
+        modelSource: 'huggingface',
         models: {
           fast: {
             id: 'fast',
             name: 'Fast Mode (Real-ESRGAN)',
             architecture: 'RealESR-general-x4v3',
-            fallbackArchitecture: 'RealESRGAN_x4plus',
             scale: 4,
-            version: env.DEFAULT_FAST_MODEL_VERSION || 'realesrgan-x4-v1',
+            version: env.DEFAULT_FAST_MODEL_VERSION || 'realesrgan-x4-v2',
+            downloadUrl: 'https://huggingface.co/Heliosoph/realesrgan-onnx/resolve/main/realesr-general-x4v3.onnx',
             fileName: 'model.onnx',
             recommendedTileSizes: [128, 256, 512],
             defaultTileSize: 256,
@@ -88,7 +88,8 @@ export default {
             name: 'Photo Mode (Real-HAT-GAN SRx4)',
             architecture: 'Real_HAT_GAN_SRx4',
             scale: 4,
-            version: env.DEFAULT_PHOTO_MODEL_VERSION || 'real-hat-gan-x4-v1',
+            version: env.DEFAULT_PHOTO_MODEL_VERSION || 'real-hat-gan-x4-v2',
+            downloadUrl: 'https://huggingface.co/SceneWorks/real-esrgan-onnx/resolve/main/real_esrgan_x4.onnx',
             fileName: 'model.onnx',
             recommendedTileSizes: [128, 256],
             defaultTileSize: 256,

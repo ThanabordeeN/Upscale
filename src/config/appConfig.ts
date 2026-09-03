@@ -1,7 +1,7 @@
 export const APP_CONFIG = {
   appName: 'WebGPU Free Image Upscaler',
   version: '1.0.0',
-  modelCdnUrl: import.meta.env.VITE_MODEL_CDN_URL || 'https://models.example.com',
+  modelSource: 'huggingface',
   localModelBasePath: '/models',
   apiConfigUrl: '/api/config',
   analyticsUrl: '/api/analytics',

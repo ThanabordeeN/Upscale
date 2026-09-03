@@ -138,6 +138,9 @@ export class InferenceRunner {
     options: {
       initialTileSize: number;
       overlap: number;
+      scale?: 2 | 4;
+      sharpness?: number;
+      denoise?: number;
       onProgress: (progress: UpscaleProgress) => void;
     }
   ): Promise<HTMLCanvasElement> {
@@ -152,7 +155,7 @@ export class InferenceRunner {
 
     while (oomAttempt < 3) {
       try {
-        const resultCanvas = await this.executeTiledPass(
+        let resultCanvas = await this.executeTiledPass(
           sourceCanvas,
           model,
           currentTileSize,
@@ -164,18 +167,41 @@ export class InferenceRunner {
           oomAttempt > 0
         );
 
-        const elapsed = performance.now() - startTime;
+        // 1. If user selected 2x scale, downscale high-res 4x result with high quality smoothing
+        if (options.scale === 2) {
+          const target2xW = inputW * 2;
+          const target2xH = inputH * 2;
+          const canvas2x = document.createElement('canvas');
+          canvas2x.width = target2xW;
+          canvas2x.height = target2xH;
+          const c2x = canvas2x.getContext('2d');
+          if (c2x) {
+            c2x.imageSmoothingEnabled = true;
+            c2x.imageSmoothingQuality = 'high';
+            c2x.drawImage(resultCanvas, 0, 0, target2xW, target2xH);
+            resultCanvas = canvas2x;
+          }
+        }
+
+        // 2. If user adjusted sharpness (0..100 with 50 as neutral), apply filter
+        if (typeof options.sharpness === 'number' && options.sharpness !== 50) {
+          resultCanvas = this.applySharpnessAdjust(resultCanvas, options.sharpness);
+        }
+
+        const finalW = resultCanvas.width;
+        const finalH = resultCanvas.height;
+
         sendAnonymousAnalytics({
           model: model.id,
-          scale: model.scale,
+          scale: options.scale || model.scale,
           tileSize: currentTileSize,
-          processingMs: elapsed,
+          processingMs: performance.now() - startTime,
           success: true,
           webgpuSupported: !!(typeof navigator !== 'undefined' && navigator.gpu),
           inputWidth: inputW,
           inputHeight: inputH,
-          outputWidth: targetW,
-          outputHeight: targetH,
+          outputWidth: finalW,
+          outputHeight: finalH,
         });
 
         return resultCanvas;
@@ -560,5 +586,55 @@ export class InferenceRunner {
     }
 
     return data;
+  }
+
+  /**
+   * Applies user-customized sharpness adjustment (-50% soften to +50% crisp)
+   */
+  private static applySharpnessAdjust(canvas: HTMLCanvasElement, sharpnessPercent: number): HTMLCanvasElement {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+    const w = canvas.width;
+    const h = canvas.height;
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const copy = new Uint8ClampedArray(data);
+
+    // Factor: -1 (at 0%) to +1 (at 100%)
+    const factor = (sharpnessPercent - 50) / 50.0;
+    const strength = Math.abs(factor) * 0.35;
+
+    for (let y = 1; y < h - 1; y++) {
+      const yOffset = y * w;
+      for (let x = 1; x < w - 1; x++) {
+        const idx = (yOffset + x) * 4;
+        for (let c = 0; c < 3; c++) {
+          const center = copy[idx + c];
+          const laplacian =
+            center * 4 -
+            copy[((y - 1) * w + x) * 4 + c] -
+            copy[((y + 1) * w + x) * 4 + c] -
+            copy[(yOffset + x - 1) * 4 + c] -
+            copy[(yOffset + x + 1) * 4 + c];
+
+          if (factor > 0) {
+            // Sharpen
+            data[idx + c] = Math.min(255, Math.max(0, center + laplacian * strength));
+          } else {
+            // Soften / Denoise
+            const avg =
+              (center +
+                copy[((y - 1) * w + x) * 4 + c] +
+                copy[((y + 1) * w + x) * 4 + c] +
+                copy[(yOffset + x - 1) * 4 + c] +
+                copy[(yOffset + x + 1) * 4 + c]) /
+              5;
+            data[idx + c] = Math.min(255, Math.max(0, center * (1 - strength) + avg * strength));
+          }
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+    return canvas;
   }
 }

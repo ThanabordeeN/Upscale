@@ -183,39 +183,38 @@ export class ModelCacheManager {
       return cached;
     }
 
-    // Construct URLs: R2 CDN primary, local fallback secondary
-    const r2Url = `${APP_CONFIG.modelCdnUrl}/models/${model.id === 'fast' ? 'realesrgan' : 'real-hat'}/${model.fileName}`;
+    // URLs: local file (if bundled/cached in public) primary, Hugging Face secondary
     const localUrl = `${APP_CONFIG.localModelBasePath}/${model.id === 'fast' ? 'realesrgan' : 'real-hat'}/${model.fileName}`;
+    const hfUrl = model.downloadUrl;
 
     let response: Response | null = null;
 
-    // Try primary CDN first if not pointing to dummy domain
-    if (!r2Url.includes('example.com')) {
-      try {
-        console.log(`[ModelCache] Fetching model from primary CDN: ${r2Url}`);
-        const res = await fetch(r2Url, { mode: 'cors' });
-        const cType = res.headers.get('content-type') || '';
-        if (res.ok && !cType.includes('text/html')) {
-          response = res;
-        }
-      } catch (err) {
-        console.warn(`[ModelCache] Primary CDN fetch failed, trying local: ${localUrl}`);
+    // 1. Try local path first
+    try {
+      console.log(`[ModelCache] Checking local model path: ${localUrl}`);
+      const res = await fetch(localUrl);
+      const cType = res.headers.get('content-type') || '';
+      if (res.ok && !cType.includes('text/html')) {
+        response = res;
+        console.log(`[ModelCache] Found model locally at ${localUrl}`);
       }
+    } catch {
+      // Local not available, will try Hugging Face
     }
 
-    // Try local fallback
+    // 2. If not local, download directly from Hugging Face
     if (!response) {
       try {
-        console.log(`[ModelCache] Fetching model from local path: ${localUrl}`);
-        const res = await fetch(localUrl);
+        console.log(`[ModelCache] Downloading directly from Hugging Face: ${hfUrl}`);
+        const res = await fetch(hfUrl, { mode: 'cors' });
         const cType = res.headers.get('content-type') || '';
         if (res.ok && !cType.includes('text/html')) {
           response = res;
         } else {
-          throw new Error(`Local file returned status ${res.status} (content-type: ${cType})`);
+          throw new Error(`Hugging Face responded with status ${res.status}`);
         }
-      } catch (localErr) {
-        throw new Error(`Failed to download valid ONNX model ${model.name}. Both CDN and local paths failed.`);
+      } catch (hfErr) {
+        throw new Error(`Failed to download model ${model.name} from Hugging Face (${hfUrl}): ${hfErr}`);
       }
     }
 

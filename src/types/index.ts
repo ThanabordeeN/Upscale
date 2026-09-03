@@ -7,6 +7,7 @@ export interface ModelConfig {
   architecture: string;
   scale: number;
   version: string;
+  downloadUrl: string;
   fileName: string;
   recommendedTileSizes: number[];
   defaultTileSize: number;
@@ -79,6 +80,9 @@ export interface TileCoordinates {
 
 export interface InferenceOptions {
   mode: ModelMode;
+  scale: 2 | 4;
+  sharpness: number; // 0 to 100
+  denoise: number;   // 0 to 100
   tileSize: number;
   overlap: number;
   autoTileSize: boolean;

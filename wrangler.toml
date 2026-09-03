@@ -11,8 +11,8 @@ not_found_handling = "single-page-application"
 
 [vars]
 ENVIRONMENT = "production"
-MODEL_CDN_URL = "https://models.example.com"
+MODEL_SOURCE = "huggingface"
 APP_URL = "https://upscale.example.com"
 ENABLE_ANALYTICS = "true"
-DEFAULT_FAST_MODEL_VERSION = "realesrgan-x4-v1"
-DEFAULT_PHOTO_MODEL_VERSION = "real-hat-gan-x4-v1"
+DEFAULT_FAST_MODEL_VERSION = "realesrgan-x4-v2"
+DEFAULT_PHOTO_MODEL_VERSION = "real-hat-gan-x4-v2"

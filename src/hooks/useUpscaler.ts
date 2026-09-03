@@ -10,6 +10,9 @@ export function useUpscaler() {
   const [tileSize, setTileSize] = useState<number>(256);
   const [autoTileSize, setAutoTileSize] = useState<boolean>(true);
   const [overlap, setOverlap] = useState<number>(16);
+  const [scale, setScale] = useState<2 | 4>(4);
+  const [sharpness, setSharpness] = useState<number>(50);
+  const [denoise, setDenoise] = useState<number>(50);
 
   const [progress, setProgress] = useState<UpscaleProgress>({
     stage: 'idle',
@@ -81,6 +84,9 @@ export function useUpscaler() {
         const upscaled = await InferenceRunner.upscaleImage(sourceCanvas, model, {
           initialTileSize: effectiveTileSize,
           overlap,
+          scale,
+          sharpness,
+          denoise,
           onProgress: (p) => {
             setProgress(p);
           },
@@ -99,7 +105,7 @@ export function useUpscaler() {
         isProcessingRef.current = false;
       }
     },
-    [sourceCanvas, autoTileSize, tileSize, overlap]
+    [sourceCanvas, autoTileSize, tileSize, overlap, scale, sharpness, denoise]
   );
 
   const reset = useCallback(() => {
@@ -129,9 +135,15 @@ export function useUpscaler() {
     tileSize,
     autoTileSize,
     overlap,
+    scale,
+    sharpness,
+    denoise,
     setTileSize,
     setAutoTileSize,
     setOverlap,
+    setScale,
+    setSharpness,
+    setDenoise,
     handleImageSelected,
     runUpscale,
     reset,

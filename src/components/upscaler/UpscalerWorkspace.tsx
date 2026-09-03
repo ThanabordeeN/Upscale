@@ -6,7 +6,7 @@ import { useUpscaler } from '../../hooks/useUpscaler';
 import { WebGPUStatusBanner } from './WebGPUStatusBanner';
 import { DropZone } from './DropZone';
 import { ModelSelector } from './ModelSelector';
-import { TileSettings } from './TileSettingsModal';
+import { BasicParameters } from './BasicParameters';
 import { ProgressCard } from './ProgressCard';
 import { ComparisonViewer } from './ComparisonViewer';
 import { DownloadToolbar } from './DownloadToolbar';
@@ -39,9 +39,15 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
     tileSize,
     autoTileSize,
     overlap,
+    scale,
+    sharpness,
+    denoise,
     setTileSize,
     setAutoTileSize,
     setOverlap,
+    setScale,
+    setSharpness,
+    setDenoise,
     handleImageSelected,
     runUpscale,
     reset,
@@ -95,7 +101,7 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
 
               <div className="flex items-center space-x-2 self-end sm:self-center">
                 <span className="rounded bg-teal-500/10 px-2 py-1 text-[11px] font-semibold text-teal-400 border border-teal-500/20">
-                  Target: {formatDimensions(imageMetadata.targetWidth, imageMetadata.targetHeight)}
+                  Target: {formatDimensions(imageMetadata.width * scale, imageMetadata.height * scale)} ({scale}×)
                 </span>
                 <button
                   type="button"
@@ -118,14 +124,20 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
               disabled={isProcessing}
             />
 
-            {/* Tiling and Hardware Strategy */}
-            <TileSettings
+            {/* User Customizable Parameters & Hardware Strategy */}
+            <BasicParameters
               model={currentModel}
+              scale={scale}
+              onScaleChange={setScale}
+              sharpness={sharpness}
+              onSharpnessChange={setSharpness}
+              denoise={denoise}
+              onDenoiseChange={setDenoise}
               tileSize={tileSize}
-              autoTileSize={autoTileSize}
-              overlap={overlap}
               onTileSizeChange={setTileSize}
-              onAutoChange={setAutoTileSize}
+              autoTileSize={autoTileSize}
+              onAutoTileSizeChange={setAutoTileSize}
+              overlap={overlap}
               onOverlapChange={setOverlap}
               disabled={isProcessing}
             />
@@ -145,7 +157,7 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
                   className="flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 px-6 py-3.5 text-sm sm:text-base font-bold text-slate-950 hover:from-teal-400 hover:to-emerald-300 transition-all shadow-xl shadow-teal-500/20 active:scale-[0.98] disabled:opacity-50"
                 >
                   <Sparkles className="h-4 w-4 text-slate-950" />
-                  <span>Upscale 4× with {currentModel.name}</span>
+                  <span>Upscale {scale}× with {currentModel.name}</span>
                   <ArrowRight className="h-4 w-4 text-slate-950" />
                 </button>
               </div>
