@@ -228,6 +228,11 @@ export class InferenceRunner {
       });
     });
 
+    const engineMode: 'webgpu-onnx' | 'wasm-onnx' | 'simulated-filter' =
+      sessionCtx.session && !sessionCtx.isSimulated
+        ? (sessionCtx.executionProvider === 'webgpu' ? 'webgpu-onnx' : 'wasm-onnx')
+        : 'simulated-filter';
+
     onProgress({
       stage: 'tiling',
       percent: 15,
@@ -238,6 +243,7 @@ export class InferenceRunner {
       tileSize,
       detail: `Partitioning ${inputW}×${inputH}px image into ${tileSize}px tiles (overlap: ${overlap}px)...`,
       oomFallbackTriggered,
+      engineMode,
     });
 
     const partition = TilingEngine.planTiles(inputW, inputH, tileSize, overlap);
@@ -345,6 +351,7 @@ export class InferenceRunner {
         tileSize,
         detail: `Processing tile ${i + 1}/${totalTiles} (${sessionCtx.executionProvider.toUpperCase()})`,
         oomFallbackTriggered,
+        engineMode,
       });
 
       // Yield control briefly to keep browser UI responsive and prevent frame drops
@@ -363,6 +370,7 @@ export class InferenceRunner {
       tileSize,
       detail: 'Composing final seamless 4x canvas...',
       oomFallbackTriggered,
+      engineMode,
     });
 
     const finalImageData = blender.toImageData();
@@ -384,6 +392,7 @@ export class InferenceRunner {
       tileSize,
       detail: `Upscaled to ${targetW}×${targetH}px successfully in ${Math.round((performance.now() - startTime) / 1000)}s`,
       oomFallbackTriggered,
+      engineMode,
     });
 
     return outputCanvas;

@@ -31,13 +31,30 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
           )}
 
           <div>
-            <h4 className="font-semibold text-slate-100 text-sm sm:text-base">
-              {isComplete
-                ? 'Upscaling Complete (4× Super-Resolution)'
-                : isError
-                ? 'Processing Halted'
-                : 'Processing on Local WebGPU...'}
-            </h4>
+            <div className="flex items-center space-x-2">
+              <h4 className="font-semibold text-slate-100 text-sm sm:text-base">
+                {isComplete
+                  ? 'Upscaling Complete (4× Super-Resolution)'
+                  : isError
+                  ? 'Processing Halted'
+                  : 'Processing on Local Device...'}
+              </h4>
+              {progress.engineMode === 'webgpu-onnx' && (
+                <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
+                  ⚡ Real WebGPU AI
+                </span>
+              )}
+              {progress.engineMode === 'wasm-onnx' && (
+                <span className="rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold">
+                  🧠 Real ONNX (WASM)
+                </span>
+              )}
+              {progress.engineMode === 'simulated-filter' && (
+                <span className="rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold">
+                  ⚠️ Simulated Fallback
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-400">{progress.detail}</p>
           </div>
         </div>
