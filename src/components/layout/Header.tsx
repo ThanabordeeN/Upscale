@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({ webgpuStatus, onOpenPrivacyModal
             </button>
           </div>
 
-          {/* WebGPU Status Indicator Pill */}
+          {/* WebGPU / CPU inference capability indicator */}
           <div
             className={`flex items-center space-x-1.5 rounded-full px-3 py-1 text-xs font-medium border ${
               webgpuStatus.supported
@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({ webgpuStatus, onOpenPrivacyModal
               }`}
             />
             <span className="hidden sm:inline">
-              {webgpuStatus.supported ? 'WebGPU Active' : 'Fallback Mode'}
+              {webgpuStatus.supported ? 'WebGPU Active' : 'CPU (WASM) Mode'}
             </span>
             <span className="sm:hidden">
               {webgpuStatus.supported ? 'GPU Ready' : 'CPU'}
