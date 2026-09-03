@@ -1,100 +1,113 @@
-# WebGPU Free Image Upscaler — V1
+# WebGPU Free Image Upscaler — ยกระดับความคมชัดภาพถ่ายด้วย AI บนเบราว์เซอร์
 
-A 100% free, 100% private in-browser 4× AI image super-resolution application powered by **WebGPU** and **ONNX Runtime Web**. Images never leave the user's browser, incurring **$0 in server GPU compute costs**.
+[![Cloudflare Workers](https://img.shields.io/badge/Deployed%20on-Cloudflare%20Workers-orange?logo=cloudflare)](https://webgpu-image-upscaler.nounxlab.workers.dev)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-ThanabordeeN%2FUpscale-181717?logo=github)](https://github.com/ThanabordeeN/Upscale)
+[![WebGPU](https://img.shields.io/badge/WebGPU-Active-green?logo=w3c)](https://www.w3.org/TR/webgpu/)
 
----
-
-## 🚀 Key Features
-
-* **Dual AI Modes**:
-  * **Fast Mode**: Real-ESRGAN (`RealESR-general-x4v3` / `RealESRGAN_x4plus`) — fast inference, low VRAM footprint, optimal for compressed JPEGs, social media, and screenshots.
-  * **Photo Mode**: Real-HAT-GAN (`Real_HAT_GAN_SRx4` official non-sharper variant) — state-of-the-art Hybrid Attention Transformer preserving natural textures and micro-contrast.
-* **100% Client-Side Privacy**: Zero image bytes, thumbnails, or EXIF metadata are ever sent across the network. Auditable in browser DevTools Network tab.
-* **Seamless Tiling & Blend Overlap**: Raised-cosine 2D accumulation feathering across 128px / 256px / 512px tile boundaries, completely eliminating grid seams.
-* **Adaptive GPU Out-Of-Memory Recovery**: Automatically steps down tile size (`512px → 256px → 128px`) without page reload if VRAM bounds are reached.
-* **Versioned Local Model Caching**: On-demand downloading cached via Cache Storage API and IndexedDB (`realesrgan-x4-v1`, `real-hat-gan-x4-v1`).
-* **Cloudflare Workers Architecture**: Hosted on Workers Static Assets (under 500 KB total, compliant with Cloudflare's 25 MiB asset ceiling), with models hosted on Cloudflare R2 (`models.example.com`).
+> **A 100% free, 100% private in-browser 4× AI image super-resolution web application powered by WebGPU and ONNX Runtime Web.**  
+> ภาพถ่ายของคุณจะได้รับการประมวลผลบนการ์ดจอ (GPU) ในเครื่องของคุณโดยตรง รูปภาพไม่เคยถูกส่งขึ้นเซิร์ฟเวอร์ใดๆ ปลอดภัยสูงสุด 100%
 
 ---
 
-## 📁 Repository Structure
+## 🔗 Live Application & Links
+
+* **🌐 Live Production URL**: [https://webgpu-image-upscaler.nounxlab.workers.dev](https://webgpu-image-upscaler.nounxlab.workers.dev)
+* **🐙 GitHub Repository**: [https://github.com/ThanabordeeN/Upscale](https://github.com/ThanabordeeN/Upscale)
+* **🤗 Hugging Face Models**:
+  * Fast Mode: [Heliosoph/realesrgan-onnx](https://huggingface.co/Heliosoph/realesrgan-onnx) (`RealESR-general-x4v3`, 4.87 MB)
+  * Photo Mode: [SceneWorks/real-esrgan-onnx](https://huggingface.co/SceneWorks/real-esrgan-onnx) (`real_esrgan_x4`, 64 MB)
+
+---
+
+## 🌟 จุดเด่นและฟีเจอร์สำคัญ (Key Features)
+
+* **สไตล์ Soft Editorial UI**:
+  * ผสมผสานศิลปะตัวพิมพ์นิตยสาร **Noto Serif Thai** และ **Newsreader** เข้ากับความโมเดิร์นของ **Prompt** และ **Plus Jakarta Sans**
+  * คุมโทนสีกระดาษอบอุ่น **Warm Charcoal Paper & Linen** สบายตา ไม่ฉูดฉาด
+* **รองรับภาษาไทย 100% (Bilingual Support)**:
+  * ปุ่มสลับภาษา **`[ ไทย | EN ]`** ที่มุมขวาบน สลับภาษาได้ทันทีและบันทึกค่าไว้ในเบราว์เซอร์
+* **ปรับแต่งค่าพารามิเตอร์ได้อย่างอิสระ (Customizable Parameters)**:
+  * **Scale Factor**: เลือกขยายขนาด `2× (Compact)` หรือ `4× (Ultra HD)`
+  * **Detail & Edge Sharpness**: สไลเดอร์ปรับความคมชัดของขอบภาพตั้งแต่ 0% (นุ่มนวลเป็นธรรมชาติ) ถึง 100% (คมชัดกริบ)
+  * **Hardware Tiling**: เลือกขนาดบล็อกประมวลผล `128px`, `256px`, `512px` หรือตั้งค่า **Auto Adaptive** ตามการ์ดจอ
+  * **Seam Overlap**: ผสานขอบบล็อกภาพด้วยเทคนิค **Raised-Cosine 2D Overlap Blending** ลบรอยตัดของบล็อกภาพ 100%
+* **ความเป็นส่วนตัวขั้นสูงสุด (Zero Uploads Guarantee)**:
+  * รูปภาพ พิกเซล และข้อมูล EXIF ประมวลผลในหน่วยความจำ RAM/VRAM ของเครื่องผู้ใช้ผ่าน HTML5 ImageBitmap & File API เท่านั้น
+  * ผู้ใช้สามารถเปิด Chrome DevTools (`F12`) แท็บ Network เพื่อพิสูจน์ได้ว่าไม่มีข้อมูลภาพใดๆ หลุดออกจากเครื่อง
+* **ไร้เซิร์ฟเวอร์ GPU (Zero Server Cost)**:
+  * ดาวน์โหลดโมเดลตรงจาก Hugging Face CDN และแคชลง Cache Storage API + IndexedDB ในเครื่องผู้ใช้
+  * โฮสต์เว็บแอปพลิเคชันบน Cloudflare Workers Static Assets (ขนาด Static Bundle รวม < 400 kB)
+
+---
+
+## 📁 โครงสร้างโปรเจกต์ (Repository Structure)
 
 ```text
 ├── src/
 │   ├── components/
-│   │   ├── content/        # SEO & educational pages (How It Works, Model Guide, FAQ, Privacy, About)
-│   │   ├── layout/         # Header, Footer, and AdSlot (safe ad separation per spec)
-│   │   └── upscaler/       # DropZone, ModelSelector, TileSettings, ProgressCard, ComparisonViewer, DownloadToolbar
-│   ├── config/             # App and model configurations
+│   │   ├── content/        # ข้อมูลเชิงเทคนิค, คำถามที่พบบ่อย (FAQ), นโยบายความเป็นส่วนตัว
+│   │   ├── layout/         # Header (พร้อมปุ่มสลับภาษา), Footer, AdSlot
+│   │   └── upscaler/       # DropZone, ModelSelector, BasicParameters, ProgressCard, ComparisonViewer, DownloadToolbar
+│   ├── config/             # การตั้งค่าแอปพลิเคชันและโมเดล ONNX จาก Hugging Face
+│   ├── context/            # LanguageContext (TH / EN)
 │   ├── hooks/              # useWebGPU, useModelManager, useUpscaler
+│   ├── i18n/               # พจนานุกรมคำแปลภาษาไทยและภาษาอังกฤษ
 │   ├── services/           # webgpuDetector, modelCache, tilingEngine, blendOverlap, inferenceRunner, analytics
 │   └── utils/              # canvasUtils, indexedDb, formatters
 ├── worker/
-│   └── index.ts            # Cloudflare Worker API (/health, /api/config, /api/model-manifest, /api/analytics)
+│   └── index.ts            # Cloudflare Worker API (/health, /api/config, /api/analytics)
 ├── public/
-│   ├── models/             # Local manifests & dev assets
+│   ├── models/             # โครงสร้างโมเดล ONNX สำหรับ Local Dev
 │   ├── robots.txt
 │   └── sitemap.xml
-├── scripts/
-│   ├── export_realesrgan.py     # PyTorch to ONNX export for Real-ESRGAN
-│   ├── export_real_hat_gan.py   # Technical Gate PyTorch to ONNX export for Real-HAT-GAN
-│   ├── validate_onnx.py         # ONNX graph & WebGPU operator verification
-│   ├── setup_r2_bucket.sh       # Cloudflare R2 bucket creation & CORS setup
-│   └── r2-cors.json             # R2 CORS configuration
-├── wrangler.toml           # Cloudflare Workers + Static Assets configuration
-└── vite.config.ts          # Vite configuration optimized for WebGPU
+├── wrangler.toml           # การตั้งค่า Cloudflare Workers Static Assets
+└── vite.config.ts          # การตั้งค่า Vite + Dev API Middleware
 ```
 
 ---
 
-## 🛠️ Quick Start
+## 🛠️ วิธีการรันบนเครื่อง Local (Quick Start)
 
-### 1. Install Dependencies
+### 1. ติดตั้ง Dependencies
 ```bash
 npm install
 ```
 
-### 2. Local Frontend Development
+### 2. รัน Local Development Server
 ```bash
 npm run dev
 ```
+เปิดเบราว์เซอร์ไปที่ `http://localhost:5173`
 
-### 3. Build & Test Cloudflare Worker Locally
+### 3. ทดสอบ Build สำหรับ Production
 ```bash
 npm run build
-npm run worker:dev
-```
-Open `http://localhost:8787` in Chrome 113+ or Edge 113+.
-
----
-
-## ☁️ Cloudflare R2 & Deployment
-
-### 1. Configure Cloudflare R2
-Run the setup script:
-```bash
-./scripts/setup_r2_bucket.sh
 ```
 
-### 2. Upload ONNX Models to R2
+### 4. Deploy ขึ้น Cloudflare Workers
 ```bash
-npx wrangler r2 object put upscaler-models/models/realesrgan/model.onnx --file models/realesrgan/model.onnx
-npx wrangler r2 object put upscaler-models/models/realesrgan/manifest.json --file public/models/realesrgan/manifest.json
-npx wrangler r2 object put upscaler-models/models/real-hat/model.onnx --file models/real-hat/model.onnx
-npx wrangler r2 object put upscaler-models/models/real-hat/manifest.json --file public/models/real-hat/manifest.json
-```
-
-### 3. Deploy Worker & Static Assets
-```bash
-npm run build
 npm run worker:deploy
 ```
 
 ---
 
-## 🔒 Privacy Guarantee
+## 🐧 การเปิดใช้งาน WebGPU บน Linux (Chrome / Brave / Edge)
 
-This app is engineered to guarantee 100% on-device execution:
-* **HTML5 ImageBitmap & File API**: Images remain solely in browser client memory.
-* **Worker Guard**: The `/api/analytics` endpoint rejects any payload containing `image`, `file`, `base64`, or payloads larger than 4KB with HTTP 400.
-* **Independent Verification**: Press `F12` in Chrome/Edge, open the Network tab, and observe that only ONNX model weights and static assets are fetched. Zero image bytes leave your machine.
+เนื่องจาก Linux มีความหลากหลายของไดรเวอร์กราฟิก เบราว์เซอร์อาจปิด WebGPU ไว้เป็นค่าเริ่มต้น สามารถเปิดใช้งานได้ง่ายๆ:
+1. พิมพ์ในช่อง Address bar: `chrome://flags/#enable-unsafe-webgpu` ปรับเป็น **Enabled**
+2. พิมพ์: `chrome://flags/#enable-vulkan` ปรับเป็น **Enabled**
+3. กดปุ่มสีฟ้า **Relaunch** ด้านล่างเบราว์เซอร์
+4. หรือเปิดเบราว์เซอร์ผ่าน Terminal ด้วยคำสั่ง:
+   ```bash
+   google-chrome --enable-features=Vulkan --enable-unsafe-webgpu
+   ```
+
+---
+
+## 📜 License & Research Credits
+
+* **WebGPU Free Image Upscaler**: MIT License
+* **Real-ESRGAN**: BSD-3-Clause License (Tencent ARC Lab & UCAS - Xintao Wang et al.)
+* **Real-HAT-GAN**: Apache-2.0 License (Xiangyu Chen, Xintao Wang et al.)
+* **ONNX Runtime Web**: MIT License (Microsoft)
