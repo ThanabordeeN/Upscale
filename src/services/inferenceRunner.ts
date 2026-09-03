@@ -63,40 +63,66 @@ export class InferenceRunner {
 
     if (onProgress) onProgress('Compiling WebGPU pipeline...', 60);
 
-    // 2. Try creating session with WebGPU
+    // 2. Try creating session with WebGPU and WASM fallback
     const providers = preferWebGPU && typeof navigator !== 'undefined' && !!navigator.gpu
       ? ['webgpu', 'wasm']
       : ['wasm'];
 
+    let session: ort.InferenceSession | null = null;
+    let executionProvider = 'wasm';
+
     try {
-      const session = await ort.InferenceSession.create(modelBuffer, {
+      session = await ort.InferenceSession.create(modelBuffer, {
         executionProviders: providers,
         graphOptimizationLevel: 'all',
       });
-
+      executionProvider = preferWebGPU && navigator.gpu ? 'webgpu' : 'wasm';
       console.log(`[InferenceRunner] Successfully created session for ${model.name} with providers:`, providers);
+    } catch (gpuErr) {
+      console.warn('[InferenceRunner] Session creation with primary providers failed, attempting WASM-only fallback:', gpuErr);
+      if (providers.includes('webgpu')) {
+        try {
+          session = await ort.InferenceSession.create(modelBuffer, {
+            executionProviders: ['wasm'],
+            graphOptimizationLevel: 'all',
+          });
+          executionProvider = 'wasm';
+          console.log(`[InferenceRunner] Successfully created WASM fallback session for ${model.name}`);
+        } catch (wasmErr) {
+          console.warn('[InferenceRunner] WASM fallback also failed:', wasmErr);
+        }
+      }
 
+      if (!session) {
+        const errorText = String(gpuErr);
+        if (errorText.includes('protobuf') || errorText.includes('Failed to load model')) {
+          console.warn('[InferenceRunner] Corrupted model detected. Purging local cache...');
+          await ModelCacheManager.purgeModel(model);
+        }
+      }
+    }
+
+    if (session) {
       activeSessionContext = {
         session,
         modelId: model.id,
         version: model.version,
-        executionProvider: preferWebGPU && navigator.gpu ? 'webgpu' : 'wasm',
+        executionProvider,
         isSimulated: false,
       };
-
       if (onProgress) onProgress('AI Pipeline Ready', 75);
       return activeSessionContext;
-    } catch (ortErr) {
-      console.warn('[InferenceRunner] WebGPU session creation failed, falling back to simulated high-fidelity pipeline:', ortErr);
-      activeSessionContext = {
-        session: null,
-        modelId: model.id,
-        version: model.version,
-        executionProvider: 'client-edge-filter',
-        isSimulated: true,
-      };
-      return activeSessionContext;
     }
+
+    console.warn('[InferenceRunner] All ONNX session creations failed, falling back to simulated high-fidelity pipeline.');
+    activeSessionContext = {
+      session: null,
+      modelId: model.id,
+      version: model.version,
+      executionProvider: 'client-edge-filter',
+      isSimulated: true,
+    };
+    return activeSessionContext;
   }
 
   /**
