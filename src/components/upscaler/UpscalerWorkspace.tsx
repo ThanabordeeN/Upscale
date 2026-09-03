@@ -76,7 +76,7 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
           <div className="flex items-center justify-between gap-3 rounded-[20px] bg-paper-950/70 p-3.5 ring-1 ring-inset ring-white/10">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-paper-800 text-paper-300">
-                <FileImage className="h-4.5 w-4.5" />
+                <FileImage className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <span className="block truncate text-sm font-medium text-paper-100">{imageMetadata.name}</span>
