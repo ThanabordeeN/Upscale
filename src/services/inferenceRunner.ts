@@ -7,25 +7,56 @@ import { sendAnonymousAnalytics } from './analytics';
 
 // Configure ONNX Runtime Web environment
 if (typeof window !== 'undefined') {
-  // Use CDN or R2 custom domain for WebGPU JSEP WASM kernels to stay within Cloudflare 25 MiB asset limits
+  // Use CDN or R2 custom domain for WebGPU/WASM runtime files to stay within Cloudflare 25 MiB asset limits.
   ort.env.wasm.wasmPaths = import.meta.env.VITE_ORT_WASM_PATH || 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.29.0/dist/';
   ort.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 2);
   ort.env.webgpu.validateInputContent = false;
 }
 
+type InferenceExecutionProvider = 'webgpu' | 'wasm';
+
 export interface InferenceSessionContext {
-  session: ort.InferenceSession | null;
+  session: ort.InferenceSession;
   modelId: string;
   version: string;
-  executionProvider: string;
-  isSimulated?: boolean;
+  executionProvider: InferenceExecutionProvider;
 }
 
 let activeSessionContext: InferenceSessionContext | null = null;
 
 export class InferenceRunner {
+  private static createSession(
+    modelBuffer: ArrayBuffer,
+    executionProviders: string[]
+  ): Promise<ort.InferenceSession> {
+    return ort.InferenceSession.create(modelBuffer, {
+      executionProviders,
+      graphOptimizationLevel: 'disabled',
+      enableMemPattern: false,
+      enableCpuMemArena: false,
+    });
+  }
+
+  private static createWasmSession(modelBuffer: ArrayBuffer): Promise<ort.InferenceSession> {
+    return this.createSession(modelBuffer, ['wasm']);
+  }
+
+  private static errorText(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  private static async purgeCorruptedModelIfNeeded(model: ModelConfig, error: unknown): Promise<void> {
+    const text = this.errorText(error).toLowerCase();
+    if (text.includes('protobuf') || text.includes('failed to load model') || text.includes('invalid model')) {
+      console.warn('[InferenceRunner] Corrupted model detected. Purging local cache...');
+      await ModelCacheManager.purgeModel(model);
+    }
+  }
+
   /**
-   * Initializes or reuses ONNX Runtime InferenceSession
+   * Initializes or reuses an ONNX Runtime session.
+   * WebGPU is preferred; if it cannot initialize, inference falls back to real
+   * ONNX Runtime Web WASM execution on the CPU. No simulated image filter is used.
    */
   public static async getOrCreateSession(
     model: ModelConfig,
@@ -35,102 +66,93 @@ export class InferenceRunner {
     if (
       activeSessionContext &&
       activeSessionContext.modelId === model.id &&
-      activeSessionContext.version === model.version &&
-      activeSessionContext.session
+      activeSessionContext.version === model.version
     ) {
       return activeSessionContext;
     }
 
     if (onProgress) onProgress('Checking model cache...', 10);
 
-    // 1. Fetch model binary
+    // 1. Fetch the real ONNX model. CPU fallback still requires the same model weights.
     let modelBuffer: ArrayBuffer;
     try {
       modelBuffer = await ModelCacheManager.fetchAndCacheModel(model, (dl) => {
-        if (onProgress) onProgress(`Downloading ${model.name} (${Math.round(dl.percent)}%)...`, 10 + dl.percent * 0.4);
+        if (onProgress) {
+          onProgress(`Downloading ${model.name} (${Math.round(dl.percent)}%)...`, 10 + dl.percent * 0.4);
+        }
       });
     } catch (fetchError) {
-      console.warn('[InferenceRunner] Could not load remote model binary, switching to high-fidelity client edge reconstruction engine:', fetchError);
-      activeSessionContext = {
-        session: null,
-        modelId: model.id,
-        version: model.version,
-        executionProvider: 'client-edge-filter',
-        isSimulated: true,
-      };
-      return activeSessionContext;
+      const message = this.errorText(fetchError);
+      console.error('[InferenceRunner] Could not load ONNX model binary:', fetchError);
+      throw new Error(`Could not load ${model.name}. CPU fallback also requires the real ONNX model. ${message}`);
     }
 
-    if (onProgress) onProgress('Compiling WebGPU pipeline...', 60);
+    const hasWebGPU =
+      preferWebGPU &&
+      typeof navigator !== 'undefined' &&
+      !!navigator.gpu;
 
-    // 2. Try creating session with WebGPU and WASM fallback
-    const providers = preferWebGPU && typeof navigator !== 'undefined' && !!navigator.gpu
-      ? ['webgpu', 'wasm']
-      : ['wasm'];
+    let session: ort.InferenceSession;
+    let executionProvider: InferenceExecutionProvider;
 
-    let session: ort.InferenceSession | null = null;
-    let executionProvider = 'wasm';
+    // 2. Prefer a pure WebGPU session. If initialization fails, explicitly retry as WASM/CPU.
+    if (hasWebGPU) {
+      if (onProgress) onProgress('Compiling WebGPU pipeline...', 60);
 
-    try {
-      session = await ort.InferenceSession.create(modelBuffer, {
-        executionProviders: providers,
-        graphOptimizationLevel: 'disabled',
-        enableMemPattern: false,
-        enableCpuMemArena: false,
-      });
-      executionProvider = preferWebGPU && navigator.gpu ? 'webgpu' : 'wasm';
-      console.log(`[InferenceRunner] Successfully created session for ${model.name} with providers:`, providers);
-    } catch (gpuErr) {
-      console.warn('[InferenceRunner] Session creation with primary providers failed, attempting WASM-only fallback:', gpuErr);
-      if (providers.includes('webgpu')) {
+      try {
+        session = await this.createSession(modelBuffer, ['webgpu']);
+        executionProvider = 'webgpu';
+        console.log(`[InferenceRunner] Successfully created WebGPU session for ${model.name}.`);
+      } catch (gpuError) {
+        console.warn('[InferenceRunner] WebGPU session creation failed. Switching to WASM CPU fallback:', gpuError);
+        if (onProgress) onProgress('WebGPU unavailable. Initializing CPU (WASM) fallback...', 65);
+
         try {
-          session = await ort.InferenceSession.create(modelBuffer, {
-            executionProviders: ['wasm'],
-            graphOptimizationLevel: 'disabled',
-            enableMemPattern: false,
-            enableCpuMemArena: false,
-          });
+          session = await this.createWasmSession(modelBuffer);
           executionProvider = 'wasm';
-          console.log(`[InferenceRunner] Successfully created WASM fallback session for ${model.name}`);
-        } catch (wasmErr) {
-          console.warn('[InferenceRunner] WASM fallback also failed:', wasmErr);
+          console.log(`[InferenceRunner] Successfully created WASM CPU fallback session for ${model.name}.`);
+        } catch (wasmError) {
+          console.error('[InferenceRunner] WASM CPU fallback session creation also failed:', wasmError);
+          await this.purgeCorruptedModelIfNeeded(model, wasmError);
+          throw new Error(
+            `Unable to initialize ${model.name} with WebGPU or CPU (WASM). ` +
+              `WebGPU: ${this.errorText(gpuError)}; CPU: ${this.errorText(wasmError)}`
+          );
         }
       }
+    } else {
+      if (onProgress) onProgress('WebGPU unavailable. Initializing CPU (WASM) pipeline...', 60);
 
-      if (!session) {
-        const errorText = String(gpuErr);
-        if (errorText.includes('protobuf') || errorText.includes('Failed to load model')) {
-          console.warn('[InferenceRunner] Corrupted model detected. Purging local cache...');
-          await ModelCacheManager.purgeModel(model);
-        }
+      try {
+        session = await this.createWasmSession(modelBuffer);
+        executionProvider = 'wasm';
+        console.log(`[InferenceRunner] Successfully created WASM CPU session for ${model.name}.`);
+      } catch (wasmError) {
+        console.error('[InferenceRunner] WASM CPU session creation failed:', wasmError);
+        await this.purgeCorruptedModelIfNeeded(model, wasmError);
+        throw new Error(`Unable to initialize ${model.name} on CPU (WASM): ${this.errorText(wasmError)}`);
       }
     }
 
-    if (session) {
-      activeSessionContext = {
-        session,
-        modelId: model.id,
-        version: model.version,
-        executionProvider,
-        isSimulated: false,
-      };
-      if (onProgress) onProgress('AI Pipeline Ready', 75);
-      return activeSessionContext;
-    }
-
-    console.warn('[InferenceRunner] All ONNX session creations failed, falling back to simulated high-fidelity pipeline.');
     activeSessionContext = {
-      session: null,
+      session,
       modelId: model.id,
       version: model.version,
-      executionProvider: 'client-edge-filter',
-      isSimulated: true,
+      executionProvider,
     };
+
+    if (onProgress) {
+      onProgress(
+        executionProvider === 'webgpu' ? 'WebGPU AI pipeline ready' : 'CPU (WASM) AI pipeline ready',
+        75
+      );
+    }
+
     return activeSessionContext;
   }
 
   /**
-   * Runs complete tiled upscaling pipeline on input canvas/image
+   * Runs complete tiled upscaling pipeline on input canvas/image.
    */
   public static async upscaleImage(
     sourceCanvas: HTMLCanvasElement,
@@ -167,7 +189,7 @@ export class InferenceRunner {
           oomAttempt > 0
         );
 
-        // 1. If user selected 2x scale, downscale high-res 4x result with high quality smoothing
+        // 1. If user selected 2x scale, downscale the native 4x result with high quality smoothing.
         if (options.scale === 2) {
           const target2xW = inputW * 2;
           const target2xH = inputH * 2;
@@ -183,7 +205,7 @@ export class InferenceRunner {
           }
         }
 
-        // 2. If user adjusted sharpness (0..100 with 50 as neutral), apply filter
+        // 2. Optional post-inference sharpness adjustment.
         if (typeof options.sharpness === 'number' && options.sharpness !== 50) {
           resultCanvas = this.applySharpnessAdjust(resultCanvas, options.sharpness);
         }
@@ -206,42 +228,46 @@ export class InferenceRunner {
 
         return resultCanvas;
       } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        const isOOM = errorMsg.toLowerCase().includes('out of memory') ||
-                      errorMsg.toLowerCase().includes('oom') ||
-                      errorMsg.toLowerCase().includes('buffer size') ||
-                      errorMsg.toLowerCase().includes('allocation');
+        const errorMsg = this.errorText(err);
+        const lowerError = errorMsg.toLowerCase();
+        const isOOM =
+          lowerError.includes('out of memory') ||
+          lowerError.includes('oom') ||
+          lowerError.includes('buffer size') ||
+          lowerError.includes('allocation');
 
         if (isOOM && currentTileSize > 128) {
-          // Automatic downgrade: 512 -> 256 -> 128 as required by Section 9
+          // Automatic memory downgrade: 512 -> 256 -> 128. This still runs the real ONNX model.
           const nextTileSize = currentTileSize === 512 ? 256 : 128;
-          console.warn(`[InferenceRunner] GPU OOM encountered with tile size ${currentTileSize}px. Auto-downgrading to ${nextTileSize}px...`);
+          console.warn(
+            `[InferenceRunner] Inference memory limit encountered with ${currentTileSize}px tiles. ` +
+              `Auto-downgrading to ${nextTileSize}px...`
+          );
           currentTileSize = nextTileSize;
           oomAttempt++;
           continue;
-        } else {
-          // Failed or non-recoverable error
-          sendAnonymousAnalytics({
-            model: model.id,
-            scale: model.scale,
-            tileSize: currentTileSize,
-            processingMs: performance.now() - startTime,
-            success: false,
-            webgpuSupported: !!(typeof navigator !== 'undefined' && navigator.gpu),
-            inputWidth: inputW,
-            inputHeight: inputH,
-            errorMessage: errorMsg,
-          });
-          throw err;
         }
+
+        sendAnonymousAnalytics({
+          model: model.id,
+          scale: model.scale,
+          tileSize: currentTileSize,
+          processingMs: performance.now() - startTime,
+          success: false,
+          webgpuSupported: !!(typeof navigator !== 'undefined' && navigator.gpu),
+          inputWidth: inputW,
+          inputHeight: inputH,
+          errorMessage: errorMsg,
+        });
+        throw err;
       }
     }
 
-    throw new Error('GPU out of memory even with smallest 128px tile size.');
+    throw new Error('Inference ran out of memory even with the smallest 128px tile size.');
   }
 
   /**
-   * Internal tiled pass execution
+   * Internal tiled pass execution.
    */
   private static async executeTiledPass(
     sourceCanvas: HTMLCanvasElement,
@@ -266,7 +292,9 @@ export class InferenceRunner {
       elapsedMs: performance.now() - startTime,
       estimatedRemainingMs: null,
       tileSize,
-      detail: oomFallbackTriggered ? `Downgraded tile size to ${tileSize}px after GPU memory limit` : 'Preparing model pipeline...',
+      detail: oomFallbackTriggered
+        ? `Downgraded tile size to ${tileSize}px after a memory limit`
+        : 'Preparing model pipeline...',
       oomFallbackTriggered,
     });
 
@@ -284,10 +312,8 @@ export class InferenceRunner {
       });
     });
 
-    const engineMode: 'webgpu-onnx' | 'wasm-onnx' | 'simulated-filter' =
-      sessionCtx.session && !sessionCtx.isSimulated
-        ? (sessionCtx.executionProvider === 'webgpu' ? 'webgpu-onnx' : 'wasm-onnx')
-        : 'simulated-filter';
+    let engineMode: 'webgpu-onnx' | 'wasm-onnx' =
+      sessionCtx.executionProvider === 'webgpu' ? 'webgpu-onnx' : 'wasm-onnx';
 
     onProgress({
       stage: 'tiling',
@@ -306,11 +332,7 @@ export class InferenceRunner {
     const totalTiles = partition.tiles.length;
     const blender = new OverlapBlender(targetW, targetH);
 
-    // Source context to extract tiles
-    const srcCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
-    if (!srcCtx) throw new Error('Could not get source canvas context');
-
-    // Scratch tile canvas
+    // Scratch tile canvas.
     const tileCanvas = document.createElement('canvas');
     tileCanvas.width = tileSize;
     tileCanvas.height = tileSize;
@@ -319,14 +341,13 @@ export class InferenceRunner {
 
     const scaledTileSize = tileSize * scale;
     const scaledOverlap = overlap * scale;
-
     const tileTimes: number[] = [];
 
     for (let i = 0; i < totalTiles; i++) {
       const tileStart = performance.now();
       const tile = partition.tiles[i];
 
-      // 1. Extract tile from source image
+      // 1. Extract tile from source image.
       tileCtx.clearRect(0, 0, tileSize, tileSize);
       tileCtx.drawImage(
         sourceCanvas,
@@ -340,7 +361,7 @@ export class InferenceRunner {
         tile.height
       );
 
-      // If tile is smaller than tileSize (near borders), mirror/extend border
+      // If tile is smaller than tileSize (near borders), extend it to the model input size.
       if (tile.width < tileSize || tile.height < tileSize) {
         tileCtx.drawImage(
           tileCanvas,
@@ -356,43 +377,65 @@ export class InferenceRunner {
       }
 
       const inputImageData = tileCtx.getImageData(0, 0, tileSize, tileSize);
-
       let outputRGBA: Uint8ClampedArray;
 
-      if (sessionCtx.session && !sessionCtx.isSimulated) {
-        try {
-          outputRGBA = await this.runOnnxTileInference(sessionCtx.session, inputImageData, tileSize, scale);
-        } catch (tileErr) {
-          console.warn('[InferenceRunner] Primary tile inference failed, switching to WASM fallback:', tileErr);
-          if (sessionCtx.executionProvider === 'webgpu') {
-            try {
-              const modelBuf = await ModelCacheManager.getCachedModel(model);
-              if (modelBuf) {
-                const wasmSession = await ort.InferenceSession.create(modelBuf, {
-                  executionProviders: ['wasm'],
-                  graphOptimizationLevel: 'disabled',
-                  enableMemPattern: false,
-                  enableCpuMemArena: false,
-                });
-                sessionCtx.session = wasmSession;
-                sessionCtx.executionProvider = 'wasm';
-                outputRGBA = await this.runOnnxTileInference(wasmSession, inputImageData, tileSize, scale);
-              } else {
-                throw new Error('Model buffer not in cache');
-              }
-            } catch (wasmFallbackErr) {
-              console.warn('[InferenceRunner] WASM fallback also encountered error, falling back to simulated filter:', wasmFallbackErr);
-              outputRGBA = await this.runSimulatedHighFidelityUpscale(inputImageData, tileSize, scale, model.id);
-            }
-          } else {
-            outputRGBA = await this.runSimulatedHighFidelityUpscale(inputImageData, tileSize, scale, model.id);
-          }
+      try {
+        outputRGBA = await this.runOnnxTileInference(
+          sessionCtx.session,
+          inputImageData,
+          tileSize,
+          scale
+        );
+      } catch (tileError) {
+        // A WebGPU session may initialize successfully and still fail during execution.
+        // In that case, switch the active session to a real WASM/CPU ONNX session and retry the same tile.
+        if (sessionCtx.executionProvider !== 'webgpu') {
+          throw tileError;
         }
-      } else {
-        outputRGBA = await this.runSimulatedHighFidelityUpscale(inputImageData, tileSize, scale, model.id);
+
+        console.warn('[InferenceRunner] WebGPU tile inference failed. Switching to WASM CPU fallback:', tileError);
+
+        onProgress({
+          stage: 'compiling-shader',
+          percent: Math.max(15, Math.round(15 + (i / Math.max(1, totalTiles)) * 80)),
+          currentTile: i,
+          totalTiles,
+          elapsedMs: performance.now() - startTime,
+          estimatedRemainingMs: null,
+          tileSize,
+          detail: 'WebGPU inference failed. Switching to CPU (WASM) fallback...',
+          oomFallbackTriggered,
+          engineMode: 'wasm-onnx',
+        });
+
+        try {
+          const modelBuffer =
+            (await ModelCacheManager.getCachedModel(model)) ||
+            (await ModelCacheManager.fetchAndCacheModel(model));
+          const wasmSession = await this.createWasmSession(modelBuffer);
+
+          outputRGBA = await this.runOnnxTileInference(
+            wasmSession,
+            inputImageData,
+            tileSize,
+            scale
+          );
+
+          sessionCtx.session = wasmSession;
+          sessionCtx.executionProvider = 'wasm';
+          activeSessionContext = sessionCtx;
+          engineMode = 'wasm-onnx';
+          console.log('[InferenceRunner] Switched active inference session to WASM CPU fallback.');
+        } catch (wasmFallbackError) {
+          console.error('[InferenceRunner] WASM CPU tile fallback also failed:', wasmFallbackError);
+          throw new Error(
+            `WebGPU inference failed and CPU (WASM) fallback also failed. ` +
+              `WebGPU: ${this.errorText(tileError)}; CPU: ${this.errorText(wasmFallbackError)}`
+          );
+        }
       }
 
-      // 3. Blend tile into global canvas
+      // 2. Blend tile into global canvas.
       const tileTargetX = tile.x * scale;
       const tileTargetY = tile.y * scale;
 
@@ -414,13 +457,12 @@ export class InferenceRunner {
         isBottom
       );
 
-      // Calculate progress and ETA
+      // Calculate progress and ETA.
       const tileElapsed = performance.now() - tileStart;
       tileTimes.push(tileElapsed);
       const avgTileMs = tileTimes.reduce((a, b) => a + b, 0) / tileTimes.length;
       const remainingTiles = totalTiles - (i + 1);
       const estimatedRemainingMs = remainingTiles * avgTileMs;
-
       const currentProgressPercent = Math.min(98, 15 + Math.round(((i + 1) / totalTiles) * 80));
 
       onProgress({
@@ -436,9 +478,9 @@ export class InferenceRunner {
         engineMode,
       });
 
-      // Yield control briefly to keep browser UI responsive and prevent frame drops
+      // Yield control briefly to keep browser UI responsive.
       if (i % 2 === 0) {
-        await new Promise((r) => setTimeout(r, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
 
@@ -472,7 +514,9 @@ export class InferenceRunner {
       elapsedMs: performance.now() - startTime,
       estimatedRemainingMs: 0,
       tileSize,
-      detail: `Upscaled to ${targetW}×${targetH}px successfully in ${Math.round((performance.now() - startTime) / 1000)}s`,
+      detail: `Upscaled to ${targetW}×${targetH}px successfully in ${Math.round(
+        (performance.now() - startTime) / 1000
+      )}s`,
       oomFallbackTriggered,
       engineMode,
     });
@@ -481,7 +525,7 @@ export class InferenceRunner {
   }
 
   /**
-   * Runs actual ONNX Runtime Web WebGPU Inference on a single tile
+   * Runs actual ONNX Runtime inference on a single tile.
    */
   private static async runOnnxTileInference(
     session: ort.InferenceSession,
@@ -493,18 +537,16 @@ export class InferenceRunner {
     const floatData = new Float32Array(3 * totalPixels);
     const rgba = inputImageData.data;
 
-    // Convert RGBA [0..255] to Planar RGB [0.0..1.0] CHW layout
+    // Convert RGBA [0..255] to planar RGB [0.0..1.0] CHW layout.
     for (let i = 0; i < totalPixels; i++) {
-      floatData[i] = rgba[i * 4] / 255.0; // R channel
-      floatData[totalPixels + i] = rgba[i * 4 + 1] / 255.0; // G channel
-      floatData[2 * totalPixels + i] = rgba[i * 4 + 2] / 255.0; // B channel
+      floatData[i] = rgba[i * 4] / 255.0;
+      floatData[totalPixels + i] = rgba[i * 4 + 1] / 255.0;
+      floatData[2 * totalPixels + i] = rgba[i * 4 + 2] / 255.0;
     }
 
     const inputName = session.inputNames[0] || 'input';
     const inputTensor = new ort.Tensor('float32', floatData, [1, 3, tileSize, tileSize]);
-
-    const feeds: Record<string, ort.Tensor> = {};
-    feeds[inputName] = inputTensor;
+    const feeds: Record<string, ort.Tensor> = { [inputName]: inputTensor };
 
     const results = await session.run(feeds);
     const outputName = session.outputNames[0] || Object.keys(results)[0];
@@ -515,7 +557,7 @@ export class InferenceRunner {
     const outPixels = outTileSize * outTileSize;
     const resultRGBA = new Uint8ClampedArray(outPixels * 4);
 
-    // Convert Planar CHW back to Interleaved RGBA
+    // Convert planar CHW back to interleaved RGBA.
     for (let i = 0; i < outPixels; i++) {
       const r = Math.min(255, Math.max(0, Math.round(outData[i] * 255)));
       const g = Math.min(255, Math.max(0, Math.round(outData[outPixels + i] * 255)));
@@ -532,75 +574,22 @@ export class InferenceRunner {
   }
 
   /**
-   * High-Fidelity Client-Side Neural Edge Reconstruction Filter
+   * Applies user-customized sharpness adjustment (-50% soften to +50% crisp).
    */
-  private static async runSimulatedHighFidelityUpscale(
-    inputImageData: ImageData,
-    tileSize: number,
-    scale: number,
-    modelMode: 'fast' | 'photo'
-  ): Promise<Uint8ClampedArray> {
-    const outSize = tileSize * scale;
-    const canvasIn = document.createElement('canvas');
-    canvasIn.width = tileSize;
-    canvasIn.height = tileSize;
-    const ctxIn = canvasIn.getContext('2d')!;
-    ctxIn.putImageData(inputImageData, 0, 0);
-
-    const canvasOut = document.createElement('canvas');
-    canvasOut.width = outSize;
-    canvasOut.height = outSize;
-    const ctxOut = canvasOut.getContext('2d')!;
-    ctxOut.imageSmoothingEnabled = true;
-    ctxOut.imageSmoothingQuality = 'high';
-
-    // Step 1: Smooth bicubic interpolation
-    ctxOut.drawImage(canvasIn, 0, 0, tileSize, tileSize, 0, 0, outSize, outSize);
-    const outImgData = ctxOut.getImageData(0, 0, outSize, outSize);
-    const data = outImgData.data;
-
-    // Step 2: Unsharp masking & texture enhancement tailored to model mode
-    const sharpenAmount = modelMode === 'photo' ? 0.28 : 0.42;
-
-    const copy = new Uint8ClampedArray(data);
-    const w = outSize;
-    const h = outSize;
-
-    for (let y = 1; y < h - 1; y++) {
-      const yOffset = y * w;
-      for (let x = 1; x < w - 1; x++) {
-        const idx = (yOffset + x) * 4;
-
-        for (let c = 0; c < 3; c++) {
-          const center = copy[idx + c];
-          const top = copy[((y - 1) * w + x) * 4 + c];
-          const bottom = copy[((y + 1) * w + x) * 4 + c];
-          const left = copy[(yOffset + x - 1) * 4 + c];
-          const right = copy[(yOffset + x + 1) * 4 + c];
-
-          const laplacian = 4 * center - (top + bottom + left + right);
-          const enhanced = center + laplacian * sharpenAmount;
-          data[idx + c] = Math.min(255, Math.max(0, enhanced));
-        }
-      }
-    }
-
-    return data;
-  }
-
-  /**
-   * Applies user-customized sharpness adjustment (-50% soften to +50% crisp)
-   */
-  private static applySharpnessAdjust(canvas: HTMLCanvasElement, sharpnessPercent: number): HTMLCanvasElement {
+  private static applySharpnessAdjust(
+    canvas: HTMLCanvasElement,
+    sharpnessPercent: number
+  ): HTMLCanvasElement {
     const ctx = canvas.getContext('2d');
     if (!ctx) return canvas;
+
     const w = canvas.width;
     const h = canvas.height;
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
     const copy = new Uint8ClampedArray(data);
 
-    // Factor: -1 (at 0%) to +1 (at 100%)
+    // Factor: -1 (at 0%) to +1 (at 100%).
     const factor = (sharpnessPercent - 50) / 50.0;
     const strength = Math.abs(factor) * 0.35;
 
@@ -618,10 +607,8 @@ export class InferenceRunner {
             copy[(yOffset + x + 1) * 4 + c];
 
           if (factor > 0) {
-            // Sharpen
             data[idx + c] = Math.min(255, Math.max(0, center + laplacian * strength));
           } else {
-            // Soften / Denoise
             const avg =
               (center +
                 copy[((y - 1) * w + x) * 4 + c] +
@@ -629,11 +616,15 @@ export class InferenceRunner {
                 copy[(yOffset + x - 1) * 4 + c] +
                 copy[(yOffset + x + 1) * 4 + c]) /
               5;
-            data[idx + c] = Math.min(255, Math.max(0, center * (1 - strength) + avg * strength));
+            data[idx + c] = Math.min(
+              255,
+              Math.max(0, center * (1 - strength) + avg * strength)
+            );
           }
         }
       }
     }
+
     ctx.putImageData(imgData, 0, 0);
     return canvas;
   }
