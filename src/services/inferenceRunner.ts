@@ -74,7 +74,9 @@ export class InferenceRunner {
     try {
       session = await ort.InferenceSession.create(modelBuffer, {
         executionProviders: providers,
-        graphOptimizationLevel: 'all',
+        graphOptimizationLevel: 'disabled',
+        enableMemPattern: false,
+        enableCpuMemArena: false,
       });
       executionProvider = preferWebGPU && navigator.gpu ? 'webgpu' : 'wasm';
       console.log(`[InferenceRunner] Successfully created session for ${model.name} with providers:`, providers);
@@ -84,7 +86,9 @@ export class InferenceRunner {
         try {
           session = await ort.InferenceSession.create(modelBuffer, {
             executionProviders: ['wasm'],
-            graphOptimizationLevel: 'all',
+            graphOptimizationLevel: 'disabled',
+            enableMemPattern: false,
+            enableCpuMemArena: false,
           });
           executionProvider = 'wasm';
           console.log(`[InferenceRunner] Successfully created WASM fallback session for ${model.name}`);
@@ -327,11 +331,37 @@ export class InferenceRunner {
 
       const inputImageData = tileCtx.getImageData(0, 0, tileSize, tileSize);
 
-      // 2. Perform Tile Inference (WebGPU ONNX or High-Fidelity Neural Edge Filter)
       let outputRGBA: Uint8ClampedArray;
 
       if (sessionCtx.session && !sessionCtx.isSimulated) {
-        outputRGBA = await this.runOnnxTileInference(sessionCtx.session, inputImageData, tileSize, scale);
+        try {
+          outputRGBA = await this.runOnnxTileInference(sessionCtx.session, inputImageData, tileSize, scale);
+        } catch (tileErr) {
+          console.warn('[InferenceRunner] Primary tile inference failed, switching to WASM fallback:', tileErr);
+          if (sessionCtx.executionProvider === 'webgpu') {
+            try {
+              const modelBuf = await ModelCacheManager.getCachedModel(model);
+              if (modelBuf) {
+                const wasmSession = await ort.InferenceSession.create(modelBuf, {
+                  executionProviders: ['wasm'],
+                  graphOptimizationLevel: 'disabled',
+                  enableMemPattern: false,
+                  enableCpuMemArena: false,
+                });
+                sessionCtx.session = wasmSession;
+                sessionCtx.executionProvider = 'wasm';
+                outputRGBA = await this.runOnnxTileInference(wasmSession, inputImageData, tileSize, scale);
+              } else {
+                throw new Error('Model buffer not in cache');
+              }
+            } catch (wasmFallbackErr) {
+              console.warn('[InferenceRunner] WASM fallback also encountered error, falling back to simulated filter:', wasmFallbackErr);
+              outputRGBA = await this.runSimulatedHighFidelityUpscale(inputImageData, tileSize, scale, model.id);
+            }
+          } else {
+            outputRGBA = await this.runSimulatedHighFidelityUpscale(inputImageData, tileSize, scale, model.id);
+          }
+        }
       } else {
         outputRGBA = await this.runSimulatedHighFidelityUpscale(inputImageData, tileSize, scale, model.id);
       }
