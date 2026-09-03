@@ -1,0 +1,26 @@
+{
+  "id": "fast",
+  "name": "Real-ESRGAN General x4v3",
+  "version": "realesrgan-x4-v1",
+  "architecture": "RealESR-general-x4v3",
+  "scale": 4,
+  "channels": 3,
+  "format": "onnx",
+  "fileName": "model.onnx",
+  "recommendedTileSize": 256,
+  "supportedTileSizes": [128, 256, 512],
+  "overlap": 16,
+  "opset": 17,
+  "precision": "fp32",
+  "inputShape": [1, 3, "H", "W"],
+  "outputShape": [1, 3, "H*4", "W*4"],
+  "normalization": {
+    "mean": [0.0, 0.0, 0.0],
+    "std": [1.0, 1.0, 1.0],
+    "range": [0.0, 1.0],
+    "colorOrder": "RGB"
+  },
+  "description": "Fast everyday super-resolution model with low GPU memory footprint. Excels at compressed photos, digital art, and screenshots.",
+  "author": "Xintao Wang et al. (Tencent ARC Lab)",
+  "license": "BSD-3-Clause"
+}

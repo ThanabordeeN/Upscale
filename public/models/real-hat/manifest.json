@@ -1,0 +1,26 @@
+{
+  "id": "photo",
+  "name": "Real-HAT-GAN SRx4 (High Fidelity)",
+  "version": "real-hat-gan-x4-v1",
+  "architecture": "Real_HAT_GAN_SRx4",
+  "scale": 4,
+  "channels": 3,
+  "format": "onnx",
+  "fileName": "model.onnx",
+  "recommendedTileSize": 256,
+  "supportedTileSizes": [128, 256],
+  "overlap": 16,
+  "opset": 17,
+  "precision": "fp32",
+  "inputShape": [1, 3, "H", "W"],
+  "outputShape": [1, 3, "H*4", "W*4"],
+  "normalization": {
+    "mean": [0.0, 0.0, 0.0],
+    "std": [1.0, 1.0, 1.0],
+    "range": [0.0, 1.0],
+    "colorOrder": "RGB"
+  },
+  "description": "State-of-the-art Hybrid Attention Transformer (non-sharper variant) for maximum fidelity and realistic photographic details.",
+  "author": "Xiangyu Chen et al.",
+  "license": "Apache-2.0"
+}

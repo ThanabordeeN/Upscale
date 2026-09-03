@@ -1,0 +1,46 @@
+import { ModelConfig } from '../types';
+
+export const AVAILABLE_MODELS: Record<'fast' | 'photo', ModelConfig> = {
+  fast: {
+    id: 'fast',
+    name: 'Real-ESRGAN Fast',
+    badge: 'Fast & Low VRAM',
+    architecture: 'RealESR-general-x4v3',
+    scale: 4,
+    version: 'realesrgan-x4-v1',
+    fileName: 'model.onnx',
+    recommendedTileSizes: [128, 256, 512],
+    defaultTileSize: 256,
+    overlap: 16,
+    estimatedMemoryMB: 350,
+    description: 'Trained on everyday compressed imagery. Blazing fast inference with minimal GPU memory footprint. Restores clean edges without heavy computation.',
+    bestFor: [
+      'Everyday photos & snapshots',
+      'Social media compressed JPEGs',
+      'Screenshots and UI graphics',
+      'Anime & digital artwork',
+      'Low to mid-range GPUs & laptops',
+    ],
+  },
+  photo: {
+    id: 'photo',
+    name: 'Real-HAT-GAN Photo',
+    badge: 'High Fidelity 4×',
+    architecture: 'Real_HAT_GAN_SRx4',
+    scale: 4,
+    version: 'real-hat-gan-x4-v1',
+    fileName: 'model.onnx',
+    recommendedTileSizes: [128, 256],
+    defaultTileSize: 256,
+    overlap: 16,
+    estimatedMemoryMB: 950,
+    description: 'Hybrid Attention Transformer combining channel attention and self-attention. Official non-sharper variant delivering realistic textures and high fidelity without harsh halos.',
+    bestFor: [
+      'Real DSLR & mirrorless photography',
+      'Portraits, skin and hair details',
+      'Nature, foliage and landscape textures',
+      'Vintage & heritage photo restoration',
+      'Modern dedicated GPUs (NVIDIA/AMD/Apple M-series)',
+    ],
+  },
+};
