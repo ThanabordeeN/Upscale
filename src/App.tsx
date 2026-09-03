@@ -11,6 +11,7 @@ import { PrivacyGuarantee } from './components/content/PrivacyGuarantee';
 import { FAQSection } from './components/content/FAQSection';
 import { AboutSection } from './components/content/AboutSection';
 import { TermsAndPrivacyModal } from './components/content/TermsAndPrivacyModal';
+import { LanguageProvider } from './context/LanguageContext';
 
 export const App: React.FC = () => {
   const webgpu = useWebGPU();
@@ -20,12 +21,13 @@ export const App: React.FC = () => {
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      {/* Top Header */}
-      <Header
-        webgpuStatus={webgpu}
-        onOpenPrivacyModal={() => setModalState({ isOpen: true, type: 'privacy' })}
-      />
+    <LanguageProvider>
+      <div className="flex min-h-screen flex-col bg-paper-950 text-paper-100 font-sans">
+        {/* Top Header */}
+        <Header
+          webgpuStatus={webgpu}
+          onOpenPrivacyModal={() => setModalState({ isOpen: true, type: 'privacy' })}
+        />
 
       {/* Main Content Area */}
       <main className="flex-1">
@@ -70,12 +72,13 @@ export const App: React.FC = () => {
         onOpenTermsModal={() => setModalState({ isOpen: true, type: 'terms' })}
       />
 
-      {/* Terms & Privacy Modal */}
-      <TermsAndPrivacyModal
-        isOpen={modalState.isOpen}
-        type={modalState.type}
-        onClose={() => setModalState({ ...modalState, isOpen: false })}
-      />
-    </div>
+        {/* Terms & Privacy Modal */}
+        <TermsAndPrivacyModal
+          isOpen={modalState.isOpen}
+          type={modalState.type}
+          onClose={() => setModalState({ ...modalState, isOpen: false })}
+        />
+      </div>
+    </LanguageProvider>
   );
 };

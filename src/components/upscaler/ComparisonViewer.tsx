@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ZoomIn, ZoomOut, Maximize2, Split, Columns } from 'lucide-react';
+import { ZoomIn, ZoomOut, Split, Columns } from 'lucide-react';
 import { ImageMetadata } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ComparisonViewerProps {
   originalImage: ImageMetadata;
@@ -11,6 +12,7 @@ export const ComparisonViewer: React.FC<ComparisonViewerProps> = ({
   originalImage,
   resultCanvas,
 }) => {
+  const { t, lang } = useLanguage();
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [viewMode, setViewMode] = useState<'split' | 'side-by-side'>('split');
@@ -79,30 +81,32 @@ export const ComparisonViewer: React.FC<ComparisonViewerProps> = ({
   return (
     <div className="w-full space-y-4">
       {/* Viewer Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-2 text-xs">
-        <div className="flex items-center space-x-1 sm:space-x-2">
-          <span className="text-slate-400 font-medium mr-1">View Mode:</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-paper-800 bg-paper-900/60 px-4 py-2.5 text-xs">
+        <div className="flex items-center space-x-1.5 sm:space-x-2">
+          <span className="text-paper-400 font-medium mr-1 font-serif">
+            {lang === 'th' ? 'มุมมอง:' : 'View:'}
+          </span>
           <button
             onClick={() => setViewMode('split')}
-            className={`flex items-center space-x-1.5 rounded-lg px-2.5 py-1 font-medium transition-colors ${
+            className={`flex items-center space-x-1.5 rounded-lg px-3 py-1 font-medium transition-colors ${
               viewMode === 'split'
-                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-paper-850 text-paper-50 border border-terracotta-500/40 shadow-sm'
+                : 'text-paper-400 hover:text-paper-200'
             }`}
           >
-            <Split className="h-3.5 w-3.5" />
-            <span>Split Slider</span>
+            <Split className="h-3.5 w-3.5 text-terracotta-400" />
+            <span>{lang === 'th' ? 'สไลเดอร์เปรียบเทียบ' : 'Split Slider'}</span>
           </button>
           <button
             onClick={() => setViewMode('side-by-side')}
-            className={`flex items-center space-x-1.5 rounded-lg px-2.5 py-1 font-medium transition-colors ${
+            className={`flex items-center space-x-1.5 rounded-lg px-3 py-1 font-medium transition-colors ${
               viewMode === 'side-by-side'
-                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-paper-850 text-paper-50 border border-terracotta-500/40 shadow-sm'
+                : 'text-paper-400 hover:text-paper-200'
             }`}
           >
-            <Columns className="h-3.5 w-3.5" />
-            <span>Side-by-Side</span>
+            <Columns className="h-3.5 w-3.5 text-terracotta-400" />
+            <span>{lang === 'th' ? 'สองหน้าต่างคู่ขนาน' : 'Side-by-Side'}</span>
           </button>
         </div>
 
@@ -111,16 +115,16 @@ export const ComparisonViewer: React.FC<ComparisonViewerProps> = ({
           <button
             onClick={() => handleZoomChange(-0.5)}
             disabled={zoomLevel <= 1}
-            className="rounded-lg border border-slate-700 bg-slate-800 p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-40"
+            className="rounded-lg border border-paper-800 bg-paper-850 p-1.5 text-paper-300 hover:bg-paper-800 disabled:opacity-40"
             title="Zoom Out"
           >
             <ZoomOut className="h-3.5 w-3.5" />
           </button>
-          <span className="font-mono text-slate-300 w-12 text-center">{Math.round(zoomLevel * 100)}%</span>
+          <span className="font-mono text-terracotta-400 w-12 text-center font-medium">{Math.round(zoomLevel * 100)}%</span>
           <button
             onClick={() => handleZoomChange(0.5)}
             disabled={zoomLevel >= 4}
-            className="rounded-lg border border-slate-700 bg-slate-800 p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-40"
+            className="rounded-lg border border-paper-800 bg-paper-850 p-1.5 text-paper-300 hover:bg-paper-800 disabled:opacity-40"
             title="Zoom In"
           >
             <ZoomIn className="h-3.5 w-3.5" />
@@ -130,102 +134,108 @@ export const ComparisonViewer: React.FC<ComparisonViewerProps> = ({
               setZoomLevel(1);
               setPanOffset({ x: 0, y: 0 });
             }}
-            className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-slate-300 hover:bg-slate-700 text-[11px]"
+            className="rounded-lg border border-paper-800 bg-paper-850 px-2.5 py-1 text-paper-400 hover:text-paper-100 text-[11px]"
           >
-            Reset
+            {lang === 'th' ? 'รีเซ็ต' : 'Reset'}
           </button>
         </div>
       </div>
 
       {/* Main Image Display Area */}
-      <div
-        ref={containerRef}
-        onPointerDown={handlePointerDown}
-        className="relative min-h-[420px] max-h-[640px] w-full select-none overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 flex items-center justify-center cursor-crosshair"
-      >
-        {viewMode === 'split' ? (
-          /* Split View Slider Mode */
-          <div
-            className="relative w-full h-full flex items-center justify-center overflow-hidden"
-            style={{
-              transform: `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${
-                panOffset.y / zoomLevel
-              }px)`,
-              transformOrigin: 'center center',
-              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
-            }}
-          >
-            {/* Background: Upscaled (4×) Image */}
+      {viewMode === 'split' ? (
+        <div
+          ref={containerRef}
+          onPointerDown={handlePointerDown}
+          className="relative w-full overflow-hidden rounded-2xl border border-paper-800 bg-paper-950/80 shadow-2xl select-none aspect-video sm:aspect-[16/10] max-h-[600px] flex items-center justify-center cursor-grab active:cursor-grabbing"
+        >
+          {/* Enhanced Result Image (Background) */}
+          {resultDataUrl && (
             <img
               src={resultDataUrl}
-              alt="Upscaled result"
-              className="max-h-[600px] w-auto max-w-full object-contain pointer-events-none"
+              alt="Enhanced Upscaled"
+              className="absolute h-full w-full object-contain pointer-events-none transition-transform"
+              style={{
+                transform: `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`,
+              }}
               draggable={false}
             />
+          )}
 
-            {/* Foreground: Original (1×) Image clipped by slider position */}
-            <div
-              className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center"
-              style={{ clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)` }}
-            >
-              <img
-                src={originalImage.dataUrl}
-                alt="Original"
-                className="max-h-[600px] w-auto max-w-full object-contain"
-                draggable={false}
-              />
-            </div>
-
-            {/* Split Divider Handle */}
-            <div
-              className="absolute inset-y-0 w-0.5 bg-teal-400 shadow-[0_0_12px_rgba(45,212,191,0.8)] cursor-ew-resize pointer-events-auto"
-              style={{ left: `${sliderPosition}%` }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setIsDragging(true);
+          {/* Original Image (Clipped Foreground) */}
+          <div
+            className="absolute inset-0 overflow-hidden pointer-events-none"
+            style={{
+              clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)`,
+            }}
+          >
+            <img
+              src={originalImage.dataUrl}
+              alt="Original"
+              className="absolute h-full w-full object-contain pointer-events-none"
+              style={{
+                transform: `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`,
               }}
-            >
-              <div className="absolute top-1/2 -left-3.5 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border-2 border-teal-400 bg-slate-900 text-teal-400 shadow-lg">
-                <Split className="h-3.5 w-3.5 rotate-90" />
-              </div>
-            </div>
+              draggable={false}
+            />
+          </div>
 
-            {/* Floating Badges */}
-            <div className="absolute top-3 left-3 rounded-lg bg-slate-950/80 px-2.5 py-1 text-xs font-semibold text-slate-300 backdrop-blur border border-slate-800">
-              Original (1×) • {originalImage.width}×{originalImage.height}px
-            </div>
-            <div className="absolute top-3 right-3 rounded-lg bg-teal-950/80 px-2.5 py-1 text-xs font-semibold text-teal-300 backdrop-blur border border-teal-500/40">
-              Upscaled (4×) • {originalImage.targetWidth}×{originalImage.targetHeight}px
+          {/* Divider Line & Handle */}
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-paper-100/80 cursor-ew-resize z-20 shadow-[0_0_10px_rgba(0,0,0,0.8)]"
+            style={{ left: `${sliderPosition}%` }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              setIsDragging(true);
+            }}
+          >
+            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-paper-700 bg-paper-900 shadow-xl cursor-ew-resize">
+              <div className="flex space-x-0.5">
+                <span className="h-3 w-0.5 bg-terracotta-400 rounded-full" />
+                <span className="h-3 w-0.5 bg-terracotta-400 rounded-full" />
+              </div>
             </div>
           </div>
-        ) : (
-          /* Side by Side Mode */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full p-2">
-            <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900/50 flex flex-col items-center">
-              <div className="w-full bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-slate-300 border-b border-slate-800 flex justify-between">
-                <span>Original (1×)</span>
-                <span className="font-mono text-slate-400">{originalImage.width}×{originalImage.height}px</span>
-              </div>
-              <img
-                src={originalImage.dataUrl}
-                alt="Original"
-                className="max-h-[380px] w-auto object-contain p-2"
-              />
-            </div>
-            <div className="relative rounded-xl overflow-hidden border border-teal-500/30 bg-slate-900/50 flex flex-col items-center">
-              <div className="w-full bg-teal-950/60 px-3 py-1.5 text-xs font-semibold text-teal-300 border-b border-teal-500/30 flex justify-between">
-                <span>Upscaled AI (4×)</span>
-                <span className="font-mono text-teal-400">{originalImage.targetWidth}×{originalImage.targetHeight}px</span>
-              </div>
+
+          {/* Editorial Labels */}
+          <div className="absolute bottom-4 left-4 z-10 rounded-full bg-paper-950/80 px-3 py-1 text-[11px] font-medium text-paper-300 border border-paper-800 backdrop-blur-md">
+            {t.originalLabel} ({originalImage.width}×{originalImage.height})
+          </div>
+          <div className="absolute bottom-4 right-4 z-10 rounded-full bg-paper-950/80 px-3 py-1 text-[11px] font-medium text-terracotta-400 border border-paper-800 backdrop-blur-md font-mono">
+            {t.upscaledLabel} ({resultCanvas.width}×{resultCanvas.height})
+          </div>
+        </div>
+      ) : (
+        /* Side-by-side mode */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="relative overflow-hidden rounded-2xl border border-paper-800 bg-paper-950/80 p-3 aspect-square flex flex-col items-center justify-center">
+            <span className="absolute top-3 left-3 z-10 rounded-full bg-paper-900/80 px-3 py-1 text-[11px] font-medium text-paper-300 border border-paper-800">
+              {t.originalLabel}
+            </span>
+            <img
+              src={originalImage.dataUrl}
+              alt="Original"
+              className="max-h-full max-w-full object-contain"
+            />
+          </div>
+
+          <div className="relative overflow-hidden rounded-2xl border border-paper-800 bg-paper-950/80 p-3 aspect-square flex flex-col items-center justify-center">
+            <span className="absolute top-3 left-3 z-10 rounded-full bg-paper-900/80 px-3 py-1 text-[11px] font-medium text-terracotta-400 border border-paper-800">
+              {t.upscaledLabel}
+            </span>
+            {resultDataUrl && (
               <img
                 src={resultDataUrl}
-                alt="Upscaled"
-                className="max-h-[380px] w-auto object-contain p-2"
+                alt="Enhanced Upscaled"
+                className="max-h-full max-w-full object-contain"
               />
-            </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      <p className="text-center text-[11px] text-paper-400">
+        {t.sliderInstruction}
+      </p>
     </div>
   );
 };

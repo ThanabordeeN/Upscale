@@ -11,6 +11,7 @@ import { ProgressCard } from './ProgressCard';
 import { ComparisonViewer } from './ComparisonViewer';
 import { DownloadToolbar } from './DownloadToolbar';
 import { formatBytes, formatDimensions, calculateMegapixels } from '../../utils/formatters';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface UpscalerWorkspaceProps {
   webgpuStatus: WebGPUStatus;
@@ -21,6 +22,7 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
   webgpuStatus,
   onRefreshWebGPU,
 }) => {
+  const { t } = useLanguage();
   const {
     currentMode,
     currentModel,
@@ -63,17 +65,20 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
       <WebGPUStatusBanner status={webgpuStatus} onRefresh={onRefreshWebGPU} />
 
       {/* Main Card Container */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/50 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+      <div className="rounded-3xl border border-paper-800 bg-paper-900/60 p-6 sm:p-10 backdrop-blur-xl shadow-2xl space-y-7">
         {/* Step 1: Image Selection */}
         {!imageMetadata ? (
           <div>
-            <div className="text-center max-w-2xl mx-auto mb-8">
-              <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-                100% Free AI Image Upscaler
+            <div className="text-center max-w-2xl mx-auto mb-9">
+              <span className="inline-block text-[11px] font-mono uppercase tracking-widest text-terracotta-400 mb-3 px-3 py-1 rounded-full bg-paper-850 border border-paper-800">
+                Client-Side Neural Super-Resolution
+              </span>
+              <h1 className="text-3xl sm:text-5xl font-serif font-normal text-paper-50 tracking-tight leading-tight">
+                {t.heroTitlePart1}{' '}
+                <span className="italic font-serif text-terracotta-400">{t.heroTitlePart2}</span>
               </h1>
-              <p className="mt-2 text-sm sm:text-base text-slate-400">
-                Enhance, denoise, and upscale your images 4× directly inside your browser using your GPU.
-                No file uploads, no credits, no waitlists.
+              <p className="mt-3.5 text-xs sm:text-sm text-paper-400 font-sans max-w-xl mx-auto leading-relaxed">
+                {t.heroSubtitle}
               </p>
             </div>
             <DropZone onImageSelected={handleImageSelected} isProcessing={isProcessing} />
@@ -82,14 +87,14 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
           /* Step 2 & 3: Model Configuration & Processing */
           <div className="space-y-6">
             {/* Selected Image Metadata Pill */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 text-xs gap-3">
-              <div className="flex items-center space-x-3 overflow-hidden">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl border border-paper-800 bg-paper-950/70 p-4 text-xs gap-3.5">
+              <div className="flex items-center space-x-3.5 overflow-hidden">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-paper-850 text-terracotta-400 border border-paper-800 shadow-sm">
                   <FileImage className="h-5 w-5" />
                 </div>
                 <div className="overflow-hidden">
-                  <span className="font-semibold text-slate-200 block truncate">{imageMetadata.name}</span>
-                  <div className="flex items-center space-x-2 text-slate-400 font-mono mt-0.5">
+                  <span className="font-medium text-paper-100 block truncate text-sm">{imageMetadata.name}</span>
+                  <div className="flex items-center space-x-2 text-paper-400 font-mono mt-0.5 text-[11px]">
                     <span>{formatDimensions(imageMetadata.width, imageMetadata.height)}</span>
                     <span>•</span>
                     <span>{calculateMegapixels(imageMetadata.width, imageMetadata.height)}</span>
@@ -99,16 +104,16 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 self-end sm:self-center">
-                <span className="rounded bg-teal-500/10 px-2 py-1 text-[11px] font-semibold text-teal-400 border border-teal-500/20">
-                  Target: {formatDimensions(imageMetadata.width * scale, imageMetadata.height * scale)} ({scale}×)
+              <div className="flex items-center space-x-2.5 self-end sm:self-center">
+                <span className="rounded-full bg-paper-850 px-3 py-1 text-[11px] font-medium text-terracotta-400 border border-paper-800 font-mono">
+                  {t.targetResolution}: {formatDimensions(imageMetadata.width * scale, imageMetadata.height * scale)} ({scale}×)
                 </span>
                 <button
                   type="button"
                   onClick={reset}
                   disabled={isProcessing}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40"
-                  title="Change image"
+                  className="rounded-full p-2 text-paper-400 hover:bg-paper-800 hover:text-paper-100 transition-all disabled:opacity-40"
+                  title={t.changeImage}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -144,21 +149,21 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
 
             {/* Upscale Action Trigger */}
             {!resultCanvas && progress.stage === 'idle' && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                <div className="flex items-center space-x-2 text-xs text-emerald-400">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>Your image is processed strictly on your GPU and will never be uploaded.</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-paper-800/60">
+                <div className="flex items-center space-x-2 text-xs text-sage-400">
+                  <ShieldCheck className="h-4 w-4 text-sage-400 flex-shrink-0" />
+                  <span>{t.privacyPromise}</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleStartUpscale}
                   disabled={isProcessing}
-                  className="flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 px-6 py-3.5 text-sm sm:text-base font-bold text-slate-950 hover:from-teal-400 hover:to-emerald-300 transition-all shadow-xl shadow-teal-500/20 active:scale-[0.98] disabled:opacity-50"
+                  className="flex items-center justify-center space-x-2.5 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 px-7 py-3.5 text-sm sm:text-base font-medium text-paper-50 transition-all shadow-lg shadow-terracotta-900/30 active:scale-[0.99] disabled:opacity-50"
                 >
-                  <Sparkles className="h-4 w-4 text-slate-950" />
-                  <span>Upscale {scale}× with {currentModel.name}</span>
-                  <ArrowRight className="h-4 w-4 text-slate-950" />
+                  <Sparkles className="h-4 w-4" />
+                  <span>{t.startUpscaleBtn} {scale}× ({currentModel.name})</span>
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
             )}

@@ -2,77 +2,79 @@ import React from 'react';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Layers, ShieldAlert } from 'lucide-react';
 import { UpscaleProgress } from '../../types';
 import { formatDuration } from '../../utils/formatters';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ProgressCardProps {
   progress: UpscaleProgress;
 }
 
 export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
+  const { t, lang } = useLanguage();
   const isComplete = progress.stage === 'completed';
   const isError = progress.stage === 'error';
 
   return (
-    <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-xl space-y-4">
+    <div className="w-full rounded-2xl border border-paper-800 bg-paper-900/80 p-6 shadow-xl space-y-4">
       {/* Top Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3.5">
           {isComplete ? (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-500/15 text-sage-400 border border-sage-500/30">
               <CheckCircle className="h-5 w-5" />
             </div>
           ) : isError ? (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/20 text-red-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/15 text-red-400 border border-red-500/30">
               <AlertTriangle className="h-5 w-5" />
             </div>
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/20 text-teal-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-paper-850 text-terracotta-400 border border-paper-800">
               <Loader2 className="h-5 w-5 animate-spin" />
             </div>
           )}
 
           <div>
-            <div className="flex items-center space-x-2">
-              <h4 className="font-semibold text-slate-100 text-sm sm:text-base">
+            <div className="flex items-center space-x-2.5">
+              <h4 className="font-serif font-medium text-paper-50 text-sm sm:text-base">
                 {isComplete
-                  ? 'Upscaling Complete (4× Super-Resolution)'
+                  ? t.upscaleComplete
                   : isError
-                  ? 'Processing Halted'
-                  : 'Processing on Local Device...'}
+                  ? t.processingHalted
+                  : t.processingWebGPU}
               </h4>
               {progress.engineMode === 'webgpu-onnx' && (
-                <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
-                  ⚡ Real WebGPU AI
+                <span className="rounded-full bg-sage-500/15 text-sage-300 border border-sage-500/30 px-2.5 py-0.5 text-[10px] font-medium">
+                  {t.realWebGPUActive}
                 </span>
               )}
               {progress.engineMode === 'wasm-onnx' && (
-                <span className="rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold">
-                  🧠 Real ONNX (WASM)
+                <span className="rounded-full bg-paper-800 text-paper-200 border border-paper-700 px-2.5 py-0.5 text-[10px] font-medium">
+                  {t.realWasmActive}
                 </span>
               )}
               {progress.engineMode === 'simulated-filter' && (
-                <span className="rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold">
-                  ⚠️ Simulated Fallback
+                <span className="rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-medium">
+                  {t.simulatedActive}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">{progress.detail}</p>
+            <p className="text-xs text-paper-400 font-sans mt-0.5">{progress.detail}</p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-xl font-bold font-mono text-teal-400">{progress.percent}%</span>
+          <span className="text-2xl font-serif font-semibold text-terracotta-400">{progress.percent}%</span>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-800">
+      {/* Editorial Progress Bar */}
+      <div className="relative h-2 w-full overflow-hidden rounded-full bg-paper-950">
         <div
           className={`h-full transition-all duration-300 ${
             isComplete
-              ? 'bg-emerald-500'
+              ? 'bg-sage-500'
               : isError
               ? 'bg-red-500'
-              : 'bg-gradient-to-r from-teal-500 via-emerald-400 to-teal-300'
+              : 'bg-gradient-to-r from-terracotta-500 to-terracotta-400'
           }`}
           style={{ width: `${progress.percent}%` }}
         />
@@ -80,39 +82,40 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
 
       {/* OOM fallback notice */}
       {progress.oomFallbackTriggered && (
-        <div className="flex items-center space-x-2 rounded-lg border border-amber-500/30 bg-amber-950/30 p-2.5 text-xs text-amber-300">
+        <div className="flex items-center space-x-2 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-300">
           <ShieldAlert className="h-4 w-4 text-amber-400 flex-shrink-0" />
           <span>
-            GPU memory buffer limit encountered: automatically resized tile down to {progress.tileSize}px to prevent
-            browser crashes.
+            {lang === 'th'
+              ? `หน่วยความจำ GPU ถึงขีดจำกัด: ปรับลดขนาดบล็อกลงเหลือ ${progress.tileSize}px อัตโนมัติ เพื่อความเสถียร`
+              : `GPU memory buffer limit encountered: automatically resized tile down to ${progress.tileSize}px to prevent browser crashes.`}
           </span>
         </div>
       )}
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 gap-2 border-t border-slate-800/80 pt-3 text-xs sm:grid-cols-3 text-slate-400">
+      <div className="grid grid-cols-2 gap-2 border-t border-paper-800/80 pt-3 text-xs sm:grid-cols-3 text-paper-400">
         <div className="flex items-center space-x-2">
-          <Layers className="h-3.5 w-3.5 text-slate-500" />
+          <Layers className="h-3.5 w-3.5 text-paper-500" />
           <span>
-            Tile:{' '}
-            <strong className="text-slate-200 font-mono">
+            {lang === 'th' ? 'บล็อกที่:' : 'Tile:'}{' '}
+            <strong className="text-paper-200 font-mono">
               {progress.totalTiles > 0 ? `${progress.currentTile} / ${progress.totalTiles}` : '—'}
             </strong>
           </span>
         </div>
         <div className="flex items-center space-x-2">
-          <Clock className="h-3.5 w-3.5 text-slate-500" />
+          <Clock className="h-3.5 w-3.5 text-paper-500" />
           <span>
-            Elapsed:{' '}
-            <strong className="text-slate-200 font-mono">{formatDuration(progress.elapsedMs)}</strong>
+            {lang === 'th' ? 'เวลาที่ใช้:' : 'Elapsed:'}{' '}
+            <strong className="text-paper-200 font-mono">{formatDuration(progress.elapsedMs)}</strong>
           </span>
         </div>
         {progress.estimatedRemainingMs !== null && !isComplete && !isError && (
           <div className="flex items-center space-x-2 col-span-2 sm:col-span-1">
-            <Clock className="h-3.5 w-3.5 text-teal-400" />
+            <Clock className="h-3.5 w-3.5 text-terracotta-400" />
             <span>
-              ETA:{' '}
-              <strong className="text-teal-300 font-mono">
+              {lang === 'th' ? 'ประมาณการ:' : 'ETA:'}{' '}
+              <strong className="text-terracotta-400 font-mono">
                 ~{formatDuration(progress.estimatedRemainingMs)}
               </strong>
             </span>

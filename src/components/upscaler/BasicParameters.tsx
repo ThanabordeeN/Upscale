@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sliders, Zap, Layers, Sparkles, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { Sliders, Layers, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { ModelConfig } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface BasicParametersProps {
   model: ModelConfig;
@@ -35,16 +36,24 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
   onOverlapChange,
   disabled = false,
 }) => {
+  const { t, lang } = useLanguage();
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+    <div className="rounded-2xl border border-paper-800 bg-paper-900/40 p-5 space-y-4">
+      {/* Section Header */}
+      <div className="flex items-center justify-between border-b border-paper-800/80 pb-3">
         <div className="flex items-center space-x-2">
-          <Sliders className="h-4 w-4 text-teal-400" />
-          <span className="font-semibold text-slate-100 text-sm">Image & Inference Parameters</span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-paper-800 text-[11px] font-mono text-terracotta-400">
+            02
+          </span>
+          <span className="font-serif font-medium text-paper-100 text-sm sm:text-base">
+            {t.step2Title}
+          </span>
         </div>
-        <span className="text-[11px] text-slate-400">User Customizable</span>
+        <span className="text-[11px] text-paper-400 font-sans">
+          {lang === 'th' ? 'ปรับแต่งได้ตามความต้องการ' : 'User Customizable'}
+        </span>
       </div>
 
       {/* Main Parameters: Scale and Sharpness */}
@@ -52,33 +61,33 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
         {/* Scale Multiplier */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 font-medium">Output Upscale Factor:</span>
-            <span className="font-mono font-bold text-teal-400">{scale}× Resolution</span>
+            <span className="text-paper-300 font-medium">{t.scaleFactor}:</span>
+            <span className="font-mono font-semibold text-terracotta-400">{scale}× Scale</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               disabled={disabled}
               onClick={() => onScaleChange(2)}
-              className={`rounded-xl border py-2 text-xs font-semibold transition-all ${
+              className={`rounded-xl border py-2.5 text-xs font-medium transition-all ${
                 scale === 2
-                  ? 'border-teal-500 bg-teal-500/20 text-teal-300 shadow-sm'
-                  : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200'
+                  ? 'border-terracotta-500/80 bg-paper-850 text-paper-50 shadow-sm ring-1 ring-terracotta-500/30'
+                  : 'border-paper-800 bg-paper-950 text-paper-400 hover:text-paper-200'
               }`}
             >
-              2× Scale (Compact)
+              {t.scale2x}
             </button>
             <button
               type="button"
               disabled={disabled}
               onClick={() => onScaleChange(4)}
-              className={`rounded-xl border py-2 text-xs font-semibold transition-all ${
+              className={`rounded-xl border py-2.5 text-xs font-medium transition-all ${
                 scale === 4
-                  ? 'border-teal-500 bg-teal-500/20 text-teal-300 shadow-sm'
-                  : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-slate-200'
+                  ? 'border-terracotta-500/80 bg-paper-850 text-paper-50 shadow-sm ring-1 ring-terracotta-500/30'
+                  : 'border-paper-800 bg-paper-950 text-paper-400 hover:text-paper-200'
               }`}
             >
-              4× Scale (Ultra HD)
+              {t.scale4x}
             </button>
           </div>
         </div>
@@ -86,11 +95,11 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
         {/* Sharpness Slider */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 font-medium flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-teal-400" />
-              <span>Detail & Edge Sharpness:</span>
+            <span className="text-paper-300 font-medium flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-terracotta-400" />
+              <span>{t.sharpnessLabel}:</span>
             </span>
-            <span className="font-mono text-teal-400 font-semibold">{sharpness}%</span>
+            <span className="font-mono text-terracotta-400 font-semibold">{sharpness}%</span>
           </div>
           <div className="flex items-center space-x-3 pt-1">
             <input
@@ -101,46 +110,46 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
               disabled={disabled}
               value={sharpness}
               onChange={(e) => onSharpnessChange(parseInt(e.target.value, 10))}
-              className="flex-1 accent-teal-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40"
+              className="flex-1 accent-[#cb7035] h-1.5 bg-paper-800 rounded-lg cursor-pointer disabled:opacity-40"
             />
           </div>
-          <div className="flex justify-between text-[10px] text-slate-500">
-            <span>Natural Soft</span>
-            <span>Balanced (50%)</span>
-            <span>Crisp Edges</span>
+          <div className="flex justify-between text-[11px] text-paper-400">
+            <span>{t.sharpnessSoft}</span>
+            <span>{t.sharpnessBalanced}</span>
+            <span>{t.sharpnessCrisp}</span>
           </div>
         </div>
       </div>
 
       {/* Advanced Tiling & GPU Strategy Accordion */}
-      <div className="border-t border-slate-800/80 pt-3">
+      <div className="border-t border-paper-800/80 pt-3">
         <button
           type="button"
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-          className="flex items-center justify-between w-full text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+          className="flex items-center justify-between w-full text-xs font-medium text-paper-300 hover:text-paper-100 transition-colors"
         >
           <span className="flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-teal-400" />
-            <span>Hardware & Tiling Advanced Controls</span>
+            <Layers className="h-3.5 w-3.5 text-terracotta-400" />
+            <span>{t.advancedTilingToggle}</span>
           </span>
           {isAdvancedOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </button>
 
         {isAdvancedOpen && (
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl bg-slate-950/60 p-3.5 border border-slate-800/60 text-xs">
+          <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl bg-paper-950/80 p-4 border border-paper-800 text-xs">
             {/* Tile Resolution */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-slate-400">Tile Partition Size:</span>
+                <span className="text-paper-300">{t.tileSizeLabel}:</span>
                 <label className="flex items-center space-x-1.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={autoTileSize}
                     onChange={(e) => onAutoTileSizeChange(e.target.checked)}
                     disabled={disabled}
-                    className="rounded border-slate-700 bg-slate-800 text-teal-500 h-3 w-3"
+                    className="rounded border-paper-700 bg-paper-800 text-terracotta-500 h-3 w-3 focus:ring-0"
                   />
-                  <span className="text-teal-300 text-[11px]">Auto Adaptive</span>
+                  <span className="text-terracotta-400 text-[11px] font-medium">{t.autoAdaptive}</span>
                 </label>
               </div>
               <div className="flex items-center space-x-2">
@@ -153,12 +162,12 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
                       type="button"
                       disabled={disabled || autoTileSize || !isSupported}
                       onClick={() => onTileSizeChange(size)}
-                      className={`flex-1 rounded-lg border py-1 font-mono text-[11px] font-semibold transition-all ${
+                      className={`flex-1 rounded-lg border py-1.5 font-mono text-[11px] font-semibold transition-all ${
                         isActive
-                          ? 'border-teal-500 bg-teal-500/20 text-teal-300'
-                          : 'border-slate-800 bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                          ? 'border-terracotta-500/80 bg-paper-850 text-paper-50'
+                          : 'border-paper-800 bg-paper-900 text-paper-400 hover:text-paper-200'
                       } ${!isSupported ? 'opacity-30 cursor-not-allowed' : ''} ${
-                        autoTileSize ? 'opacity-60 cursor-default' : ''
+                        autoTileSize ? 'opacity-50 cursor-default' : ''
                       }`}
                     >
                       {size}px
@@ -171,8 +180,8 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
             {/* Overlap Margin */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-slate-400">Seam Overlap Margin:</span>
-                <span className="font-mono text-teal-400">{overlap}px</span>
+                <span className="text-paper-300">{t.overlapLabel}:</span>
+                <span className="font-mono text-terracotta-400 font-semibold">{overlap}px</span>
               </div>
               <div className="flex items-center space-x-2">
                 {[8, 16, 24].map((ov) => (
@@ -181,18 +190,18 @@ export const BasicParameters: React.FC<BasicParametersProps> = ({
                     type="button"
                     disabled={disabled}
                     onClick={() => onOverlapChange(ov)}
-                    className={`flex-1 rounded-lg border py-1 font-mono text-[11px] font-semibold transition-all ${
+                    className={`flex-1 rounded-lg border py-1.5 font-mono text-[11px] font-semibold transition-all ${
                       overlap === ov
-                        ? 'border-teal-500 bg-teal-500/20 text-teal-300'
-                        : 'border-slate-800 bg-slate-800/60 text-slate-400 hover:text-slate-200'
+                        ? 'border-terracotta-500/80 bg-paper-850 text-paper-50'
+                        : 'border-paper-800 bg-paper-900 text-paper-400 hover:text-paper-200'
                     }`}
                   >
                     {ov}px
                   </button>
                 ))}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1 block">
-                Higher overlap guarantees zero visible tile boundaries with raised-cosine blending.
+              <span className="text-[10px] text-paper-400 mt-1.5 block leading-relaxed">
+                {t.overlapHint}
               </span>
             </div>
           </div>
