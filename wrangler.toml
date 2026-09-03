@@ -2,6 +2,7 @@ name = "webgpu-image-upscaler"
 main = "worker/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "c2cc5694fce3f00cabd33c7701de0a59"
 
 [assets]
 directory = "./dist"
