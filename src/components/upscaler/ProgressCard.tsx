@@ -6,9 +6,10 @@ import { useLanguage } from '../../context/LanguageContext';
 
 interface ProgressCardProps {
   progress: UpscaleProgress;
+  onCancel?: () => void;
 }
 
-export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
+export const ProgressCard: React.FC<ProgressCardProps> = ({ progress, onCancel }) => {
   const { t, lang } = useLanguage();
   const isComplete = progress.stage === 'completed';
   const isError = progress.stage === 'error';
@@ -56,8 +57,17 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({ progress }) => {
           </div>
         </div>
 
-        <div className="text-right">
+        <div className="flex items-center gap-3 text-right">
           <span className="text-2xl font-serif font-semibold text-terracotta-400">{progress.percent}%</span>
+          {!isComplete && !isError && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-200 active:scale-95"
+            >
+              {lang === 'th' ? 'ยกเลิก' : 'Cancel'}
+            </button>
+          )}
         </div>
       </div>
 

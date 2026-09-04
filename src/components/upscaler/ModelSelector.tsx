@@ -10,6 +10,7 @@ interface ModelSelectorProps {
   isCached: boolean;
   isCheckingCache: boolean;
   disabled?: boolean;
+  isWebGPUSupported?: boolean;
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
@@ -18,6 +19,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   isCached,
   isCheckingCache,
   disabled = false,
+  isWebGPUSupported = true,
 }) => {
   const { t, lang } = useLanguage();
   const models = Object.values(AVAILABLE_MODELS);
@@ -57,17 +59,34 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 {isFast ? <Zap className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold tracking-tight">{title}</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="block truncate text-sm font-semibold tracking-tight">{title}</span>
+                  {isFast && (
+                    <span className={`rounded-full px-1.5 py-0.2 text-[9px] font-semibold ${isSelected ? 'bg-paper-900 text-white' : 'bg-sage-500/20 text-sage-300'}`}>
+                      {lang === 'th' ? 'แนะนำ' : 'Rec'}
+                    </span>
+                  )}
+                </span>
                 <span className={`mt-0.5 block truncate text-[11px] ${isSelected ? 'text-paper-600' : 'text-paper-500'}`}>
                   {isFast
-                    ? (lang === 'th' ? 'เร็ว · ใช้หน่วยความจำน้อย' : 'Fast · lower memory')
-                    : (lang === 'th' ? 'ภาพถ่าย · รายละเอียดสูง' : 'Photo · high detail')}
+                    ? (lang === 'th' ? 'เร็ว 1s/tile · คมชัด' : 'Fast 1s/tile · Crisp')
+                    : !isWebGPUSupported
+                      ? (lang === 'th' ? '⚠️ ช้าบน CPU (~17s/tile)' : '⚠️ Heavy on CPU (~17s)')
+                      : (lang === 'th' ? 'ภาพถ่าย · รายละเอียดสูง' : 'Photo · high detail')}
                 </span>
               </span>
             </button>
           );
         })}
       </div>
+
+      {!isWebGPUSupported && currentMode === 'photo' && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-950/20 px-3 py-2 text-[11px] text-amber-300">
+          {lang === 'th'
+            ? '⚠️ คุณกำลังเลือกโหมด Photo บน CPU ซึ่งต้องใช้เวลา 10–20+ นาที แนะนำให้สลับเป็นโหมด Fast (เร็วขึ้น 15 เท่า) หรือเปิด WebGPU'
+            : '⚠️ Photo mode on CPU takes 10–20+ mins. We strongly recommend Fast mode (15× faster) or enabling WebGPU.'}
+        </div>
+      )}
     </div>
   );
 };

@@ -43,6 +43,8 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
     scale,
     sharpness,
     denoise,
+    resolutionMode,
+    setResolutionMode,
     setTileSize,
     setAutoTileSize,
     setOverlap,
@@ -51,7 +53,10 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
     setDenoise,
     handleImageSelected,
     runUpscale,
+    cancelUpscale,
     reset,
+    effectiveDimensions,
+    estimatedTiles,
   } = useUpscaler();
 
   return (
@@ -80,8 +85,17 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
               </div>
               <div className="min-w-0">
                 <span className="block truncate text-sm font-medium text-paper-100">{imageMetadata.name}</span>
-                <span className="mt-0.5 block text-[11px] text-paper-500">
-                  {formatDimensions(imageMetadata.width, imageMetadata.height)} · {formatBytes(imageMetadata.sizeBytes)} · → {formatDimensions(imageMetadata.width * scale, imageMetadata.height * scale)}
+                <span className="mt-0.5 block text-[11px] text-paper-400">
+                  {effectiveDimensions?.wasResized ? (
+                    <>
+                      <span className="line-through opacity-60">{formatDimensions(imageMetadata.width, imageMetadata.height)}</span>{' '}
+                      <span className="text-sage-300">{formatDimensions(effectiveDimensions.width, effectiveDimensions.height)}</span> · {formatBytes(imageMetadata.sizeBytes)} · → <span className="font-semibold text-paper-200">{formatDimensions(effectiveDimensions.width * scale, effectiveDimensions.height * scale)}</span>
+                    </>
+                  ) : (
+                    <>
+                      {formatDimensions(imageMetadata.width, imageMetadata.height)} · {formatBytes(imageMetadata.sizeBytes)} · → <span className="font-semibold text-paper-200">{formatDimensions(imageMetadata.width * scale, imageMetadata.height * scale)}</span>
+                    </>
+                  )}
                 </span>
               </div>
             </div>
@@ -102,6 +116,7 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
             isCached={isCached}
             isCheckingCache={isCheckingCache}
             disabled={isProcessing}
+            isWebGPUSupported={webgpuStatus.supported}
           />
 
           <BasicParameters
@@ -118,6 +133,10 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
             onAutoTileSizeChange={setAutoTileSize}
             overlap={overlap}
             onOverlapChange={setOverlap}
+            resolutionMode={resolutionMode}
+            onResolutionModeChange={setResolutionMode}
+            estimatedTiles={estimatedTiles}
+            effectiveDimensions={effectiveDimensions}
             disabled={isProcessing}
           />
 
@@ -140,7 +159,7 @@ export const UpscalerWorkspace: React.FC<UpscalerWorkspaceProps> = ({
           )}
 
           {progress.stage !== 'idle' && progress.stage !== 'completed' && (
-            <ProgressCard progress={progress} />
+            <ProgressCard progress={progress} onCancel={cancelUpscale} />
           )}
 
           {error && (

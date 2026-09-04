@@ -117,4 +117,14 @@ export class OverlapBlender {
 
     return new ImageData(outputData, this.width, this.height);
   }
+
+  /**
+   * Immediately releases internal float buffers to prevent memory spikes
+   */
+  public dispose(): void {
+    this.accumR = new Float32Array(0);
+    this.accumG = new Float32Array(0);
+    this.accumB = new Float32Array(0);
+    this.accumWeight = new Float32Array(0);
+  }
 }
