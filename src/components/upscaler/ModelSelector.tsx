@@ -69,10 +69,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                 </span>
                 <span className={`mt-0.5 block truncate text-[11px] ${isSelected ? 'text-paper-600' : 'text-paper-500'}`}>
                   {isFast
-                    ? (lang === 'th' ? 'เร็ว 1s/tile · คมชัด' : 'Fast 1s/tile · Crisp')
+                    ? (lang === 'th' ? 'เร็วมาก ~0.5s · คมชัด (644 KB)' : 'Fast ~0.5s · Crisp (644 KB)')
                     : !isWebGPUSupported
-                      ? (lang === 'th' ? '⚠️ ช้าบน CPU (~17s/tile)' : '⚠️ Heavy on CPU (~17s)')
-                      : (lang === 'th' ? 'ภาพถ่าย · รายละเอียดสูง' : 'Photo · high detail')}
+                      ? (lang === 'th' ? 'ภาพถ่าย · ละเอียดสูง (16.7 MB)' : 'Photo · High fidelity (16.7 MB)')
+                      : (lang === 'th' ? 'ภาพถ่าย · รายละเอียดสูง' : 'Photo · High detail')}
                 </span>
               </span>
             </button>
@@ -83,8 +83,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       {!isWebGPUSupported && currentMode === 'photo' && (
         <div className="rounded-xl border border-amber-500/25 bg-amber-950/20 px-3 py-2 text-[11px] text-amber-300">
           {lang === 'th'
-            ? '⚠️ คุณกำลังเลือกโหมด Photo บน CPU ซึ่งต้องใช้เวลา 10–20+ นาที แนะนำให้สลับเป็นโหมด Fast (เร็วขึ้น 15 เท่า) หรือเปิด WebGPU'
-            : '⚠️ Photo mode on CPU takes 10–20+ mins. We strongly recommend Fast mode (15× faster) or enabling WebGPU.'}
+            ? '💡 แนะนำโหมด Fast สำหรับการประมวลผลบน CPU ที่รวดเร็วทันใจ (~0.5 วินาที/tile)'
+            : '💡 Tip: Fast mode is recommended for instant CPU execution (~0.5s/tile)'}
         </div>
       )}
     </div>

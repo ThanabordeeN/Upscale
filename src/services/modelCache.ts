@@ -9,7 +9,7 @@ export interface DownloadProgress {
 }
 
 export function isValidOnnxBuffer(buffer: ArrayBuffer): boolean {
-  if (!buffer || buffer.byteLength < 500 * 1024) {
+  if (!buffer || buffer.byteLength < 50 * 1024) {
     return false;
   }
   const bytes = new Uint8Array(buffer, 0, Math.min(64, buffer.byteLength));
